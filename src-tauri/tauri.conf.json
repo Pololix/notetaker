@@ -12,9 +12,6 @@
   "app": {
     "windows": [
       {
-        "title": "notetaker",
-        "width": 800,
-        "height": 600,
         "decorations": false
       }
     ],
