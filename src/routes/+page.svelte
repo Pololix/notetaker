@@ -1,16 +1,17 @@
 <script lang="ts">
     import { onMount } from "svelte";
 
-    let commandLineOpen = $state(true);
-    const callback = (event: KeyboardEvent) => {
+    let commandLineOpen = $state(false);
+
+    const commandLineToggle = (event: KeyboardEvent) => {
         if (event.key !== ":") return;
         commandLineOpen = commandLineOpen === true ? false : true;
     };
 
     onMount(() => {
-        addEventListener("keydown", callback);
+        addEventListener("keydown", commandLineToggle);
         return () => {
-            removeEventListener("keydown", callback);
+            removeEventListener("keydown", commandLineToggle);
         };
     });
 </script>
