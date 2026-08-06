@@ -6,6 +6,7 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::window::{Window, WindowId};
 
 mod gpu;
+mod vertex;
 
 #[derive(Default)]
 struct App {
