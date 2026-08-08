@@ -18,9 +18,10 @@ impl ApplicationHandler for App {
         let window = event_loop
             .create_window(Window::default_attributes())
             .expect("Failed to create a window");
-        let window = window.clone();
+        let window = Arc::new(window);
+        let (width, height) = (window.inner_size().width, window.inner_size().height);
 
-        //self.state = Some(RendererState::new());
+        self.state = Some(RendererState::new(window, width, height));
     }
 
     fn window_event(

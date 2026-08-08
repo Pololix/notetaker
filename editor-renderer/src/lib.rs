@@ -31,7 +31,7 @@ impl RendererState {
             .get_default_config(&adapter, width, height)
             .expect("Failed to fecth default surface configuration");
         //let capabilities = surface.get_capabilities(&adapter);
-        //then here change any  necessary fields
+        //then here change any necessary fields
 
         let (device, queue) = block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
             .expect("Failed to create a device");
