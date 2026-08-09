@@ -32,8 +32,17 @@ impl ApplicationHandler for App {
     ) {
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
-            WindowEvent::RedrawRequested => println!("redraw logic"),
-            _ => {}
+            WindowEvent::Resized(size) => {
+                if let Some(state) = &mut self.state {
+                    state.resize(size.width, size.height);
+                }
+            }
+            WindowEvent::RedrawRequested => {
+                if let Some(state) = &self.state {
+                    state.render();
+                }
+            }
+            _ => println!("No functionality added for {:?}", event),
         }
     }
 }

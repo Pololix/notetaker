@@ -49,7 +49,7 @@ impl RendererState {
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
-        if width != 0 && height != 0 {
+        if width == 0 || height == 0 {
             return;
         }
 
@@ -57,5 +57,52 @@ impl RendererState {
         self.config.height = height;
 
         self.surface.configure(&self.device, &self.config);
+    }
+
+    pub fn render(&self) {
+        let status = self.surface.get_current_texture();
+
+        match status {
+            wgpu::CurrentSurfaceTexture::Success(texture)
+            | wgpu::CurrentSurfaceTexture::Suboptimal(texture) => {
+                let view = texture
+                    .texture
+                    .create_view(&wgpu::TextureViewDescriptor::default());
+
+                let mut encoder = self
+                    .device
+                    .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+
+                {
+                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                            view: &view,
+                            depth_slice: None,
+                            resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Clear(wgpu::Color {
+                                    r: 0.0,
+                                    g: 0.0,
+                                    b: 0.0,
+                                    a: 1.0,
+                                }),
+                                store: wgpu::StoreOp::Store,
+                            },
+                        })],
+                        ..Default::default()
+                    });
+                }
+
+                let command = encoder.finish();
+                self.queue.submit([command]);
+                self.queue.present(texture);
+            }
+            wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => return,
+            wgpu::CurrentSurfaceTexture::Outdated
+            | wgpu::CurrentSurfaceTexture::Lost
+            | wgpu::CurrentSurfaceTexture::Validation => {
+                todo!("Implement error handling for outdated, lost and validation branches")
+            }
+        }
     }
 }
