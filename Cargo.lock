@@ -383,6 +383,7 @@ dependencies = [
 name = "editor-renderer"
 version = "0.1.0"
 dependencies = [
+ "bytemuck",
  "pollster",
  "raw-window-handle",
  "wgpu",

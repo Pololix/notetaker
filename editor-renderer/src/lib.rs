@@ -9,6 +9,11 @@ pub struct RendererState {
     device: wgpu::Device,
     queue: wgpu::Queue,
     pipeline: wgpu::RenderPipeline,
+
+    // test
+    time_start: std::time::Instant,
+    time_buffer: wgpu::Buffer,
+    bind_group: wgpu::BindGroup,
 }
 
 impl RendererState {
@@ -42,11 +47,48 @@ impl RendererState {
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
         });
 
+        //test
+        let time_start = std::time::Instant::now();
+        let time_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("time uniform"),
+            size: 4,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let bind_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: None,
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+        });
+
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &bind_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                    buffer: &time_buffer,
+                    offset: 0,
+                    size: None,
+                }),
+            }],
+        });
+
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[],
+            bind_group_layouts: &[Some(&bind_layout)],
             immediate_size: 0,
         });
+        // finish test
 
         let vertex_state = wgpu::VertexState {
             module: &shader,
@@ -88,6 +130,11 @@ impl RendererState {
             device,
             queue,
             pipeline,
+
+            //test
+            time_start,
+            time_buffer,
+            bind_group,
         }
     }
 
@@ -116,6 +163,12 @@ impl RendererState {
                     .device
                     .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
+                self.queue.write_buffer(
+                    &self.time_buffer,
+                    0,
+                    bytemuck::bytes_of(&self.time_start.elapsed().as_secs_f32()),
+                );
+
                 let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                         view: &view,
@@ -135,20 +188,20 @@ impl RendererState {
                 });
 
                 render_pass.set_pipeline(&self.pipeline);
+                render_pass.set_bind_group(0, &self.bind_group, &[]);
                 render_pass.draw(0..3, 0..1);
 
                 drop(render_pass);
-
                 let command = encoder.finish();
+
                 self.queue.submit([command]);
                 self.queue.present(texture);
             }
-            wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => return,
-            wgpu::CurrentSurfaceTexture::Outdated
+            wgpu::CurrentSurfaceTexture::Timeout
+            | wgpu::CurrentSurfaceTexture::Occluded
+            | wgpu::CurrentSurfaceTexture::Outdated
             | wgpu::CurrentSurfaceTexture::Lost
-            | wgpu::CurrentSurfaceTexture::Validation => {
-                todo!("Implement error handling for outdated, lost and validation branches")
-            }
+            | wgpu::CurrentSurfaceTexture::Validation => panic!(),
         }
     }
 }

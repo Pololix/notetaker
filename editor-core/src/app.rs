@@ -10,6 +10,7 @@ use editor_renderer::RendererState;
 
 #[derive(Default)]
 pub struct App {
+    id: Option<WindowId>,
     state: Option<RendererState>,
 }
 
@@ -21,6 +22,7 @@ impl ApplicationHandler for App {
         let window = Arc::new(window);
         let (width, height) = (window.inner_size().width, window.inner_size().height);
 
+        self.id = Some(window.id());
         self.state = Some(RendererState::new(window, width, height));
     }
 
@@ -43,6 +45,12 @@ impl ApplicationHandler for App {
                 }
             }
             _ => println!("No functionality added for {:?}", event),
+        }
+    }
+
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        if let Some(id) = &self.id {
+            self.window_event(&event_loop, *id, WindowEvent::RedrawRequested);
         }
     }
 }
