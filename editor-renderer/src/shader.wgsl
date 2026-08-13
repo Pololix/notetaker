@@ -2,30 +2,30 @@
 var<uniform> time: f32;
 
 struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
+    @builtin(position)
+    clip_position: vec4<f32>,
+    @location(0)
+    color: vec4<f32>,
 };
-
-const TRI_VERTICES = array(
-  vec4(-0.3, -0.3, 0., 1.),
-  vec4(0.0, 0.5, 0., 1.),
-  vec4(0.3, -0.3, 0., 1.),
+const QUAD_VERTICES = array(
+    vec2(-0.5, -0.5), // bottom-left
+    vec2(-0.5, 0.5),  // top-left
+    vec2(0.5, -0.5),  // bottom-right
+    vec2(0.5, 0.5),   // top-right
 );
 
 @vertex
-fn vs_main(@builtin(vertex_index) in: u32) -> VertexOutput {
+fn vs_main(@builtin(vertex_index)index: u32, @location(0) position: vec2<f32>, @location(1) size: vec2<f32>, @location(2) color: vec4<f32>) -> VertexOutput {
     var out: VertexOutput;
-    
-    out.clip_position = TRI_VERTICES[in];
+
+    var pos = QUAD_VERTICES[index] * size + position;
+    out.clip_position = vec4<f32>(pos, 0.0, 1.0);
+    out.color = color;
 
     return out;
 }
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    var r: f32 = sin(time);
-    var g: f32 = sin(time + 2.093);
-    var b: f32 = sin(time + 4.186);
-    var a: f32 = 1.0;
-
-    return vec4<f32>(r, g, b, a);
+    return in.color;
 }
