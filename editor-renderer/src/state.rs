@@ -1,4 +1,4 @@
-use crate::TextRenderer;
+use crate::{Quad, RawQuad, TextRenderer};
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 

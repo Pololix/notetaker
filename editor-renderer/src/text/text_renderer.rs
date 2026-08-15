@@ -1,4 +1,4 @@
-use crate::text::atlas;
+use crate::text::atlas::GlyphAtlas;
 
 pub struct TextRenderer {
     font_system: cosmic_text::FontSystem,
@@ -35,7 +35,7 @@ impl TextRenderer {
             .flat_map(|run| run.glyphs.iter().cloned())
             .collect();
 
-        let mut swash_cache = cosmic_text::SwashCache::new();
+        let mut cache = cosmic_text::SwashCache::new();
         for glyph in glyphs {
             let (key, offset_x, offset_y) = cosmic_text::CacheKey::new(
                 glyph.font_id,
@@ -45,8 +45,8 @@ impl TextRenderer {
                 glyph.font_weight,
                 glyph.cache_key_flags,
             );
-            swash_cache.get_image(&mut font_system, key);
-            if let Some(image) = swash_cache.get_image(&mut font_system, key) {
+            cache.get_image(&mut font_system, key);
+            if let Some(image) = cache.get_image(&mut font_system, key) {
                 println!(
                     "glyph image: {}x{}",
                     image.placement.width, image.placement.height
@@ -54,7 +54,11 @@ impl TextRenderer {
             }
         }
 
-        Self { font_system }
+        Self {
+            font_system,
+            atlas: GlyphAtlas::new(1024, 1024),
+            cache,
+        }
     }
 
     // load user fonts
