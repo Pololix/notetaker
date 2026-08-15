@@ -1,4 +1,4 @@
-use crate::types::{Quad, RawQuad};
+use crate::TextRenderer;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
@@ -10,6 +10,7 @@ pub struct RendererState {
     device: wgpu::Device,
     queue: wgpu::Queue,
 
+    _text: TextRenderer,
     bind_group: wgpu::BindGroup,
     pipeline: wgpu::RenderPipeline,
 
@@ -138,6 +139,7 @@ impl RendererState {
             device,
             queue,
 
+            _text: TextRenderer::new(),
             bind_group,
             pipeline,
 

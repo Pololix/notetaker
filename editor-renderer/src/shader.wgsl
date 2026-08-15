@@ -7,6 +7,7 @@ struct VertexOutput {
     @location(0)
     color: vec4<f32>,
 };
+
 const QUAD_VERTICES = array(
     vec2(-0.5, -0.5), // bottom-left
     vec2(-0.5, 0.5),  // top-left
