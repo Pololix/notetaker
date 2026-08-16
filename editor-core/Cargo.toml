@@ -7,3 +7,4 @@ edition = "2024"
 winit = "0.30"
 
 editor-renderer = { path = "../editor-renderer" }
+ropey = "1.6.1"

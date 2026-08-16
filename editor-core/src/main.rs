@@ -1,6 +1,8 @@
-use winit::event_loop::{ControlFlow, EventLoop};
-
 mod app;
+mod splits;
+mod user_state;
+
+use winit::event_loop::{ControlFlow, EventLoop};
 
 fn main() {
     let event_loop = EventLoop::new().expect("Failed to create event loop");

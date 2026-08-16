@@ -11,7 +11,7 @@ pub struct RendererState {
     queue: wgpu::Queue,
     pipeline: wgpu::RenderPipeline,
 
-    text: TextRenderer,
+    pub text: TextRenderer,
     text_bind_group: wgpu::BindGroup,
     atlas_texture: wgpu::Texture,
 
@@ -206,24 +206,12 @@ impl RendererState {
         self.surface.configure(&self.device, &self.config);
     }
 
-    pub fn render(&mut self, _quads: &[Quad]) {
+    pub fn render(&mut self, quads: &[Quad]) {
         let status = self.surface.get_current_texture();
 
         match status {
             wgpu::CurrentSurfaceTexture::Success(surface_texture)
             | wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => {
-                let quads = self.text.layout_text(
-                    "Hello world!",
-                    500,
-                    500,
-                    Color {
-                        r: 1.0,
-                        g: 0.0,
-                        b: 1.0,
-                        a: 1.0,
-                    },
-                );
-
                 let raw_quads: Vec<RawQuad> = quads
                     .iter()
                     .map(|q| RawQuad::from_quad(*q, self.config.width, self.config.height))
