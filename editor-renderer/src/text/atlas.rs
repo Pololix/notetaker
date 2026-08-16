@@ -1,23 +1,23 @@
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy)]
-struct GlyphPosition {
-    x: u32,
-    y: u32,
-    width: u32,
-    height: u32,
+pub struct GlyphPosition {
+    pub x: u32,
+    pub y: u32,
+    pub width: u32,
+    pub height: u32,
 }
 
 #[derive(Debug)]
 pub struct GlyphAtlas {
-    max_x: u32,
-    max_y: u32,
+    pub max_x: u32,
+    pub max_y: u32,
     next_x: u32,
     next_y: u32,
     current_shelf_height: u32,
 
     cache: HashMap<cosmic_text::CacheKey, GlyphPosition>,
-    contents: Vec<u8>,
+    pub contents: Vec<u8>,
 }
 
 impl GlyphAtlas {
@@ -37,7 +37,7 @@ impl GlyphAtlas {
     pub fn add(
         &mut self,
         key: cosmic_text::CacheKey,
-        image: cosmic_text::SwashImage,
+        image: &cosmic_text::SwashImage,
     ) -> GlyphPosition {
         // early return if already mapped
         if self.cache.contains_key(&key) {

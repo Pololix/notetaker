@@ -38,45 +38,8 @@ impl ApplicationHandler for App {
                 }
             }
             WindowEvent::RedrawRequested => {
-                if let Some(state) = &self.state {
-                    let quads = vec![
-                        editor_renderer::Quad {
-                            x: 100,
-                            y: 100,
-                            width: 150,
-                            height: 100,
-                            color: editor_renderer::Color {
-                                r: 1.0,
-                                g: 0.2,
-                                b: 0.2,
-                                a: 1.0,
-                            }, // red
-                        },
-                        editor_renderer::Quad {
-                            x: 400,
-                            y: 250,
-                            width: 100,
-                            height: 150,
-                            color: editor_renderer::Color {
-                                r: 0.2,
-                                g: 1.0,
-                                b: 0.2,
-                                a: 1.0,
-                            }, // green
-                        },
-                        editor_renderer::Quad {
-                            x: 250,
-                            y: 400,
-                            width: 200,
-                            height: 60,
-                            color: editor_renderer::Color {
-                                r: 0.2,
-                                g: 0.4,
-                                b: 1.0,
-                                a: 1.0,
-                            }, // blue
-                        },
-                    ];
+                if let Some(state) = &mut self.state {
+                    let quads = vec![];
 
                     state.render(&quads);
                 }
