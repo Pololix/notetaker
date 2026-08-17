@@ -1,3 +1,6 @@
+mod buffer;
+pub mod workspace;
+
 use std::{fs::File, path::Path};
 
 pub enum CursorDirection {
