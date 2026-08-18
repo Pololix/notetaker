@@ -3,7 +3,6 @@
 //     fs::File,
 //     path::{Path, PathBuf},
 // };
-use crate::splits::temp::Rect;
 
 pub type BufferId = usize;
 
@@ -13,7 +12,7 @@ pub struct Buffer {
     // path: Option<PathBuf>,
     // contents: Rope,
     // cursor: usize,
-    //flags: BUfferFlags,
+    // flags: BufferFlags,
 }
 
 impl Buffer {
@@ -23,15 +22,13 @@ impl Buffer {
 
     // pub fn new_from_path(x: f32, y: f32, width: f32, height: f32, path: &Path) -> Self {
 
-    pub fn quit(&mut self) {
-        // quit logic
-    }
-
     // pub fn set_path(&mut self, path: &Path) {
 
     // insert
     // delete
     // backspace
+    // write
+    // quit
 
     // move cursor
 }

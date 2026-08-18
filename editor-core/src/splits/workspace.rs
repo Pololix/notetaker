@@ -3,6 +3,7 @@
 // - add padding between buffers and margins
 // - make API config-driven
 // - assert tree invariants
+// - modify to allow resizing buffer surfaces
 
 use crate::splits::{
     buffer::{Buffer, BufferId},
@@ -19,26 +20,28 @@ struct Node {
     ty: NodeType,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum NodeType {
     Split {
         mode: SplitMode,
         first_id: NodeId,
         second_id: NodeId,
+        area: Rect,
     },
-    Buffer {
+    View {
         buffer_id: BufferId,
-        rect: Rect,
+        surface: Rect,
     },
 }
 
 #[derive(Debug)]
 pub struct Workspace {
+    active_id: Option<NodeId>,
     nodes: Vec<Node>,
     next_node_id: NodeId,
+
     buffers: Vec<Buffer>,
     next_buff_id: BufferId,
-    active_id: Option<NodeId>, // if none should be empty
 }
 
 impl Workspace {
@@ -49,9 +52,9 @@ impl Workspace {
         let root_node = Node {
             id: 0,
             parent_id: None,
-            ty: NodeType::Buffer {
+            ty: NodeType::View {
                 buffer_id: default_buffer.id,
-                rect: Rect {
+                surface: Rect {
                     x: 0.0,
                     y: 0.0,
                     width: window_width as f32,
@@ -87,9 +90,9 @@ impl Workspace {
                 let new_root_node = Node {
                     id: self.next_node_id,
                     parent_id: None,
-                    ty: NodeType::Buffer {
+                    ty: NodeType::View {
                         buffer_id: default_buffer.id,
-                        rect: Rect {
+                        surface: Rect {
                             x: 0.0,
                             y: 0.0,
                             width: window_width as f32,
@@ -114,13 +117,9 @@ impl Workspace {
         let active_index = self.get_node_index(active_id);
 
         // fetch id and geometry if buffer node
-        let (buffer_id, rect) = match &self.nodes[active_index].ty {
-            NodeType::Buffer { buffer_id, rect } => (*buffer_id, *rect),
-            NodeType::Split {
-                mode: _,
-                first_id: _,
-                second_id: _,
-            } => return, // split must be called from a buffer
+        let (buffer_id, surface) = match &self.nodes[active_index].ty {
+            NodeType::View { buffer_id, surface } => (*buffer_id, *surface),
+            NodeType::Split { .. } => return, // split must be called from a buffer
         };
 
         // promote active to split mode
@@ -129,30 +128,32 @@ impl Workspace {
         let second_id = self.next_node_id;
         self.next_node_id += 1;
 
+        // now the buffer rect is used to be splitted into children
         self.nodes[active_index].ty = NodeType::Split {
             mode: split_mode,
             first_id,
             second_id,
+            area: surface,
         };
 
         // calculate new geometry
         // note: (0,0) at top left corner
-        let (first_rect, second_rect) = match split_mode {
+        let (first_surface, second_surface) = match split_mode {
             SplitMode::Vertical => {
                 (
                     // left rect
                     Rect {
-                        x: rect.x,
-                        y: rect.y,
-                        width: rect.width * 0.5,
-                        height: rect.height,
+                        x: surface.x,
+                        y: surface.y,
+                        width: surface.width * 0.5,
+                        height: surface.height,
                     },
                     // right rect (offset in x axis)
                     Rect {
-                        x: rect.x + rect.width * 0.5,
-                        y: rect.y,
-                        width: rect.width * 0.5,
-                        height: rect.height,
+                        x: surface.x + surface.width * 0.5,
+                        y: surface.y,
+                        width: surface.width * 0.5,
+                        height: surface.height,
                     },
                 )
             }
@@ -160,17 +161,17 @@ impl Workspace {
                 (
                     // top rect
                     Rect {
-                        x: rect.x,
-                        y: rect.y,
-                        width: rect.width,
-                        height: rect.height * 0.5,
+                        x: surface.x,
+                        y: surface.y,
+                        width: surface.width,
+                        height: surface.height * 0.5,
                     },
                     // bottom rect (offset in y axis)
                     Rect {
-                        x: rect.x,
-                        y: rect.y + rect.height * 0.5,
-                        width: rect.width,
-                        height: rect.height * 0.5,
+                        x: surface.x,
+                        y: surface.y + surface.height * 0.5,
+                        width: surface.width,
+                        height: surface.height * 0.5,
                     },
                 )
             }
@@ -181,18 +182,18 @@ impl Workspace {
         let first_child = Node {
             id: first_id,
             parent_id: Some(active_id),
-            ty: NodeType::Buffer {
+            ty: NodeType::View {
                 buffer_id,
-                rect: first_rect,
+                surface: first_surface,
             },
         };
         self.nodes.push(first_child);
         let second_child = Node {
             id: second_id,
             parent_id: Some(active_id),
-            ty: NodeType::Buffer {
+            ty: NodeType::View {
                 buffer_id,
-                rect: second_rect,
+                surface: second_surface,
             },
         };
         // note: by default new pops at right/bottom
@@ -207,17 +208,73 @@ impl Workspace {
         };
         let active_index = self.get_node_index(active_id);
 
-        // fetch id and geometry if buffer node
-        let (buffer_id, rect) = match &self.nodes[active_index].ty {
-            NodeType::Buffer { buffer_id, rect } => (*buffer_id, *rect),
+        // fetch id if buffer node
+        let buffer_id = match &self.nodes[active_index].ty {
+            NodeType::View {
+                buffer_id,
+                surface: _,
+            } => *buffer_id,
+            NodeType::Split { .. } => return, // split must be called from a buffer
+        };
+        let buffer_index = self.get_buff_index(buffer_id);
+
+        // delete whole if root
+        let parent_id = match self.nodes[active_index].parent_id {
+            Some(id) => id,
+            None => {
+                self.nodes.swap_remove(active_index);
+                self.buffers.swap_remove(buffer_index); // no other should be viewing it
+                return;
+            }
+        };
+        let parent_index = self.get_node_index(parent_id);
+
+        // fetch sibling id from parent (split node)
+        let (sibling_id, parent_area) = match &self.nodes[parent_index].ty {
             NodeType::Split {
                 mode: _,
-                first_id: _,
-                second_id: _,
-            } => return, // split must be called from a buffer
-        };
+                first_id,
+                second_id,
+                area,
+            } => {
+                let id = if active_id == *first_id {
+                    *second_id
+                } else if active_id == *second_id {
+                    *first_id
+                } else {
+                    return; // buffer is pointing to another parent
+                };
 
-        todo!("Finish delete function")
+                (id, *area)
+            }
+            NodeType::View { .. } => return, // parent of the buffer is a buffer
+        };
+        let sibling_index = self.get_node_index(sibling_id);
+
+        // promote parent to sibling type (with data), preserving the parent node
+        self.nodes[parent_index].ty = self.nodes[sibling_index].ty.clone();
+
+        // update siblings children if any
+        match &self.nodes[parent_index].ty {
+            NodeType::Split {
+                mode: _,
+                first_id,
+                second_id,
+                area: _,
+            } => {
+                let first_index = self.get_node_index(*first_id);
+                let second_index = self.get_node_index(*second_id);
+                self.nodes[first_index].parent_id = Some(parent_id);
+                self.nodes[second_index].parent_id = Some(parent_id);
+            }
+            NodeType::View { .. } => {}
+        }
+
+        // restore the geometry and clean stale nodes
+        self.restore_geometry_recursive(parent_id, parent_area);
+
+        self.nodes.swap_remove(active_index);
+        self.nodes.swap_remove(sibling_index);
     }
 
     fn get_node_index(&self, id: NodeId) -> usize {
@@ -232,5 +289,69 @@ impl Workspace {
             .iter()
             .position(|node| node.id == id)
             .expect("Failed to retrieve node index from id")
+    }
+
+    fn restore_geometry_recursive(&mut self, id: NodeId, free_area: Rect) {
+        let index = self.get_node_index(id);
+
+        // fecth split contents or directly consume the space if buffer
+        let (mode, first_id, second_id) = match &mut self.nodes[index].ty {
+            NodeType::Split {
+                mode,
+                first_id,
+                second_id,
+                area: _,
+            } => (*mode, *first_id, *second_id),
+            NodeType::View {
+                buffer_id: _,
+                surface,
+            } => {
+                *surface = free_area;
+                return;
+            }
+        };
+
+        let (first_area, second_area) = match mode {
+            SplitMode::Vertical => {
+                (
+                    // left rect
+                    Rect {
+                        x: free_area.x,
+                        y: free_area.y,
+                        width: free_area.width * 0.5,
+                        height: free_area.height,
+                    },
+                    // right rect (offset in x axis)
+                    Rect {
+                        x: free_area.x + free_area.width * 0.5,
+                        y: free_area.y,
+                        width: free_area.width * 0.5,
+                        height: free_area.height,
+                    },
+                )
+            }
+            SplitMode::Horizontal => {
+                (
+                    // top rect
+                    Rect {
+                        x: free_area.x,
+                        y: free_area.y,
+                        width: free_area.width,
+                        height: free_area.height * 0.5,
+                    },
+                    // bottom rect (offset in y axis)
+                    Rect {
+                        x: free_area.x,
+                        y: free_area.y + free_area.height * 0.5,
+                        width: free_area.width,
+                        height: free_area.height * 0.5,
+                    },
+                )
+            }
+        };
+
+        // call recursively on children
+        self.restore_geometry_recursive(first_id, first_area);
+        self.restore_geometry_recursive(second_id, second_area);
     }
 }
