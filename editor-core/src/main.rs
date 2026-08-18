@@ -1,6 +1,5 @@
 mod app;
 mod splits;
-mod user_state;
 
 use winit::event_loop::{ControlFlow, EventLoop};
 

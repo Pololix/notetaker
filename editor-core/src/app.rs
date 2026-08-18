@@ -1,20 +1,17 @@
-use crate::splits::workspace::Workspace;
+use crate::splits::Workspace;
 
 use std::sync::Arc;
 use winit::{
     application::ApplicationHandler,
-    event::{self, WindowEvent},
+    event::WindowEvent,
     event_loop::ActiveEventLoop,
-    keyboard::{Key, NamedKey},
     window::{Window, WindowId},
 };
 
 pub struct App {
     id: Option<WindowId>,
     renderer: Option<editor_renderer::RendererState>,
-    user: UserState,
-    // change to hold a variable amount (1-9)
-    workspace: Workspace,
+    workspace: Workspace, // in a future a variable amount
 }
 
 impl Default for App {
@@ -22,7 +19,6 @@ impl Default for App {
         Self {
             id: None,
             renderer: None,
-            user: UserState::Normal,
             workspace: Workspace::new(),
         }
     }
@@ -53,58 +49,6 @@ impl ApplicationHandler for App {
                     state.resize(size.width, size.height);
                 }
             }
-            // WindowEvent::RedrawRequested => {
-            //     if let Some(state) = &mut self.renderer {
-            //         let quads: Vec<Quad> = vec![];
-            //         state.render(&quads);
-            //     }
-            // }
-            // WindowEvent::KeyboardInput {
-            //     device_id: _,
-            //     event,
-            //     is_synthetic: _,
-            // } => {
-            //     // temp discard of release events
-            //     if event.state == event::ElementState::Released {
-            //         return;
-            //     }
-            //     match self.user {
-            //         UserState::Normal => match event.logical_key {
-            //             Key::Named(NamedKey::Escape) => {
-            //                 self.user = UserState::Insert;
-            //                 println!("Now in insert mode");
-            //             }
-            //             _ => {}
-            //         },
-            //         UserState::Insert => match event.logical_key {
-            //             Key::Named(NamedKey::Escape) => {
-            //                 self.user = UserState::Normal;
-            //                 println!("Now in normal mode");
-            //             }
-            //             Key::Named(NamedKey::Backspace) => self.buffer.backspace(),
-            //             Key::Named(NamedKey::Delete) => self.buffer.delete(),
-            //             Key::Character(char) => {
-            //                 for c in char.chars() {
-            //                     self.buffer.insert(c);
-            //                 }
-            //             }
-            //             Key::Named(NamedKey::ArrowLeft) => {
-            //                 self.buffer.move_cursor(CursorDirection::Left)
-            //             }
-            //             Key::Named(NamedKey::ArrowRight) => {
-            //                 self.buffer.move_cursor(CursorDirection::Right)
-            //             }
-            //             _ => {}
-            //         },
-            //         UserState::Cmdline => match event.logical_key {
-            //             Key::Named(NamedKey::Escape) => {
-            //                 self.user = UserState::Normal;
-            //                 println!("Now in normal mode");
-            //             }
-            //             _ => {}
-            //         },
-            //     }
-            // }
             _ => println!("No functionality added for {:?}", event),
         }
     }
