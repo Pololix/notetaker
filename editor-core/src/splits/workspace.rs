@@ -188,6 +188,7 @@ impl Workspace {
             },
         };
         self.nodes.push(first_child);
+
         let second_child = Node {
             id: second_id,
             parent_id: Some(active_id),
@@ -196,9 +197,10 @@ impl Workspace {
                 surface: second_surface,
             },
         };
+        self.nodes.push(second_child);
+
         // note: by default new pops at right/bottom
         self.active_id = Some(second_id);
-        self.nodes.push(second_child);
     }
 
     pub fn delete_active(&mut self) {
@@ -270,11 +272,11 @@ impl Workspace {
             NodeType::View { .. } => {}
         }
 
-        // restore the geometry and clean stale nodes
-        self.restore_geometry_recursive(parent_id, parent_area);
+        // guard against any reordering of self.nodes
+        self.nodes.swap_remove(self.get_node_index(active_id));
+        self.nodes.swap_remove(self.get_node_index(sibling_id));
 
-        self.nodes.swap_remove(active_index);
-        self.nodes.swap_remove(sibling_index);
+        self.restore_geometry_recursive(parent_id, parent_area);
     }
 
     fn get_node_index(&self, id: NodeId) -> usize {
@@ -307,6 +309,7 @@ impl Workspace {
                 surface,
             } => {
                 *surface = free_area;
+                self.active_id = Some(id);
                 return;
             }
         };
