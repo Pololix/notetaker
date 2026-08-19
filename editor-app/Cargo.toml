@@ -1,0 +1,9 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+editor-window = { path = "../editor-window" }
+editor-core = { path = "../editor-core" }
+editor-renderer = { path = "../editor-renderer" }
