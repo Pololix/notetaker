@@ -1,14 +1,10 @@
-mod app;
-mod splits;
+mod buffer;
 
-use winit::event_loop::{ControlFlow, EventLoop};
+mod editor;
+mod editor_events;
+pub use editor::Editor;
+pub use editor_events::EditorInputEvent;
 
-fn main() {
-    let event_loop = EventLoop::new().expect("Failed to create event loop");
-    event_loop.set_control_flow(ControlFlow::Poll);
+mod workspace;
 
-    let mut app = app::App::default();
-    event_loop
-        .run_app(&mut app)
-        .expect("Error during event loop execution");
-}
+mod utils;

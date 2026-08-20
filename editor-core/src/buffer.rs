@@ -20,15 +20,14 @@ impl Buffer {
         Self { id }
     }
 
-    // pub fn new_from_path(x: f32, y: f32, width: f32, height: f32, path: &Path) -> Self {
+    // quit
 
-    // pub fn set_path(&mut self, path: &Path) {
+    // open file
+    // write
 
     // insert
     // delete
     // backspace
-    // write
-    // quit
 
     // move cursor
 }

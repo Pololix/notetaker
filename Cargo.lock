@@ -72,6 +72,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "app"
+version = "0.1.0"
+dependencies = [
+ "editor-core",
+ "editor-renderer",
+ "winit",
+]
+
+[[package]]
 name = "arrayref"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -410,7 +419,6 @@ version = "0.1.0"
 dependencies = [
  "editor-renderer",
  "ropey",
- "winit",
 ]
 
 [[package]]
@@ -420,7 +428,6 @@ dependencies = [
  "bytemuck",
  "cosmic-text",
  "pollster",
- "raw-window-handle",
  "wgpu",
 ]
 

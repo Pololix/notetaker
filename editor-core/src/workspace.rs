@@ -5,17 +5,18 @@
 // - assert tree invariants
 // - modify to allow resizing buffer surfaces
 
-use crate::splits::{
+use crate::{
     buffer::{Buffer, BufferId},
-    temp::Rect,
+    editor_events::EditorEvent,
     utils::SplitMode,
 };
 
 type NodeId = usize;
+pub type WorkspaceId = usize;
 
 #[derive(Debug)]
 struct Node {
-    id: NodeId,
+    pub id: NodeId,
     parent_id: Option<NodeId>,
     ty: NodeType,
 }
@@ -36,6 +37,8 @@ enum NodeType {
 
 #[derive(Debug)]
 pub struct Workspace {
+    pub id: WorkspaceId,
+
     active_id: Option<NodeId>,
     nodes: Vec<Node>,
     next_node_id: NodeId,
@@ -45,7 +48,7 @@ pub struct Workspace {
 }
 
 impl Workspace {
-    pub fn new(window_width: u32, window_height: u32) -> Self {
+    pub fn new(id: WorkspaceId) -> Self {
         // create default empty buffer
         let default_buffer = Buffer::new(0);
         // attach it to a node and focus
@@ -68,6 +71,7 @@ impl Workspace {
         let nodes = vec![root_node];
 
         Self {
+            id,
             nodes,
             next_node_id: 1,
             buffers,
@@ -76,7 +80,29 @@ impl Workspace {
         }
     }
 
-    pub fn add_buffer(&mut self, window_width: u32, window_height: u32) {
+    pub fn handle_event(&mut self, _event: EditorEvent) {
+        todo!("handle editor event from workspace");
+    }
+
+    pub fn adapt_to_viewport(&mut self, width: u32, height: u32) {
+        let root = self
+            .nodes
+            .iter()
+            .find(|node| node.parent_id == None)
+            .expect("Failed to retrieve root");
+
+        self.restore_geometry_recursive(
+            root.id,
+            Rect {
+                x: 0.0,
+                y: 0.0,
+                width,
+                height,
+            },
+        );
+    }
+
+    pub fn add_buffer(&mut self) {
         match self.active_id {
             Some(_) => {
                 // by default the new split is vertical
@@ -279,20 +305,6 @@ impl Workspace {
         self.restore_geometry_recursive(parent_id, parent_area);
     }
 
-    fn get_node_index(&self, id: NodeId) -> usize {
-        self.nodes
-            .iter()
-            .position(|node| node.id == id)
-            .expect("Failed to retrieve node index from id")
-    }
-
-    fn get_buff_index(&self, id: BufferId) -> usize {
-        self.buffers
-            .iter()
-            .position(|node| node.id == id)
-            .expect("Failed to retrieve node index from id")
-    }
-
     fn restore_geometry_recursive(&mut self, id: NodeId, free_area: Rect) {
         let index = self.get_node_index(id);
 
@@ -356,5 +368,19 @@ impl Workspace {
         // call recursively on children
         self.restore_geometry_recursive(first_id, first_area);
         self.restore_geometry_recursive(second_id, second_area);
+    }
+
+    fn get_node_index(&self, id: NodeId) -> usize {
+        self.nodes
+            .iter()
+            .position(|node| node.id == id)
+            .expect("Failed to retrieve node index from id")
+    }
+
+    fn get_buff_index(&self, id: BufferId) -> usize {
+        self.buffers
+            .iter()
+            .position(|node| node.id == id)
+            .expect("Failed to retrieve node index from id")
     }
 }
