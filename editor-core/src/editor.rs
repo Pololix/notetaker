@@ -1,5 +1,5 @@
 use crate::{
-    editor_events::EditorInputEvent,
+    editor_events::{EditorEvent, EditorInputEvent},
     workspace::{Workspace, WorkspaceId},
 };
 
@@ -36,14 +36,33 @@ impl Editor {
         self.workspaces[index].adapt_to_viewport(width, height);
     }
 
-    pub fn handle_input_event(&self, input_event: EditorInputEvent) {
+    // pub fn render
+
+    pub fn handle_input_event(&mut self, input_event: EditorInputEvent) {
         let event = match self.mode {
-            UserMode::Normal => {}
-            UserMode::Insert => {}
+            UserMode::Normal => Self::normal_input_event(input_event),
+            UserMode::Insert => Self::insert_input_event(input_event),
         };
 
-        todo!("populate input event matches");
-        // self.workspaces[self.get_index(self.active_id)].handle_event(event);
+        match event {
+            Some(editor_event) => {
+                let index = self.get_index(self.active_id);
+                self.workspaces[index].handle_event(editor_event);
+            }
+            None => return,
+        }
+    }
+
+    fn normal_input_event(input_event: EditorInputEvent) -> Option<EditorEvent> {
+        match input_event {
+            _ => None,
+        }
+    }
+
+    fn insert_input_event(input_event: EditorInputEvent) -> Option<EditorEvent> {
+        match input_event {
+            _ => None,
+        }
     }
 
     fn get_index(&self, id: WorkspaceId) -> usize {

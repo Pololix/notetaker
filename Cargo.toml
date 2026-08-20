@@ -1,3 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["editor-app", "editor-core", "editor-renderer"]
+
+[workspace.dependencies]
+anyhow = "1.0.104"
+thiserror = "2.0.20"

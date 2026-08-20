@@ -1,7 +1,14 @@
 use std::collections::HashMap;
 
+#[non_exhaustive]
+#[derive(Debug, thiserror::Error)]
+enum GlyphAtlasError {
+    #[error("Failed to load new glyph because of a lack of space")]
+    Overflow,
+}
+
 #[derive(Debug, Clone, Copy)]
-pub struct GlyphPosition {
+struct GlyphPosition {
     pub x: u32,
     pub y: u32,
     pub width: u32,
@@ -10,27 +17,27 @@ pub struct GlyphPosition {
 
 #[derive(Debug)]
 pub struct GlyphAtlas {
-    pub max_x: u32,
-    pub max_y: u32,
+    pub width: u32,
+    pub height: u32,
     next_x: u32,
     next_y: u32,
     current_shelf_height: u32,
 
-    cache: HashMap<cosmic_text::CacheKey, GlyphPosition>,
     pub contents: Vec<u8>,
+    cache: HashMap<cosmic_text::CacheKey, GlyphPosition>,
 }
 
 impl GlyphAtlas {
     pub fn new(width: u32, height: u32) -> Self {
         Self {
-            max_x: width,
-            max_y: height,
+            width,
+            height,
             next_x: 0,
             next_y: 0,
             current_shelf_height: 0,
 
-            cache: HashMap::new(),
             contents: vec![0; (width * height) as usize],
+            cache: HashMap::new(),
         }
     }
 
@@ -38,28 +45,27 @@ impl GlyphAtlas {
         &mut self,
         key: cosmic_text::CacheKey,
         image: &cosmic_text::SwashImage,
-    ) -> GlyphPosition {
+    ) -> Result<GlyphPosition, GlyphAtlasError> {
         // early return if already mapped
         if self.cache.contains_key(&key) {
-            return self.cache[&key];
+            return Ok(self.cache[&key]);
         }
 
         // check for horizontal space
-        if self.next_x + image.placement.width > self.max_x {
+        if self.next_x + image.placement.width > self.width {
             self.next_y += self.current_shelf_height;
             self.next_x = 0;
             self.current_shelf_height = 0;
         }
-        // check for vvertical space
-        if self.next_y + image.placement.height > self.max_y {
-            todo!("Handle vertical overflow on glyph atlas");
+        // check for vertical space
+        if self.next_y + image.placement.height > self.height {
+            return Err(GlyphAtlasError::Overflow);
         }
-        // overwrite current_shelf_height if necessary
         if image.placement.height > self.current_shelf_height {
             self.current_shelf_height = image.placement.height;
         }
 
-        // insert to the cache
+        // map new entry and move pointer
         let position = GlyphPosition {
             x: self.next_x,
             y: self.next_y,
@@ -67,21 +73,8 @@ impl GlyphAtlas {
             height: image.placement.height,
         };
         self.cache.insert(key, position);
-
-        // copy contents pixel by pixel
-        for y in 0..image.placement.height {
-            for x in 0..image.placement.width {
-                let src_index = (y * image.placement.width + x) as usize;
-                let dst_x = self.next_x + x;
-                let dst_y = self.next_y + y;
-                let dst_index = (dst_y * self.max_x + dst_x) as usize;
-                self.contents[dst_index] = image.data[src_index];
-            }
-        }
-
-        // move pointer
         self.next_x += image.placement.width;
 
-        return position;
+        Ok(position)
     }
 }

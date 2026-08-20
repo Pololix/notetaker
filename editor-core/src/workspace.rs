@@ -85,12 +85,12 @@ impl Workspace {
     }
 
     pub fn adapt_to_viewport(&mut self, width: u32, height: u32) {
+        // fecth root and restore the geometry workspace-wide
         let root = self
             .nodes
             .iter()
             .find(|node| node.parent_id == None)
             .expect("Failed to retrieve root");
-
         self.restore_geometry_recursive(
             root.id,
             Rect {

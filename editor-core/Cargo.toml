@@ -6,3 +6,5 @@ edition = "2024"
 [dependencies]
 editor-renderer = { path = "../editor-renderer" }
 ropey = "1.6.1"
+anyhow = { workspace = true }
+thiserror = { workspace = true }

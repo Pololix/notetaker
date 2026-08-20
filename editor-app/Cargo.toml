@@ -1,5 +1,5 @@
 [package]
-name = "app"
+name = "editor-app"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,3 +7,5 @@ edition = "2024"
 editor-core = { path = "../editor-core" }
 editor-renderer = { path = "../editor-renderer" }
 winit = "0.30"
+anyhow = { workspace = true }
+thiserror = { workspace = true }

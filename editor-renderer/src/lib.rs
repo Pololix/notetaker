@@ -1,9 +1,8 @@
-mod state;
-pub use state::RendererState;
-
 mod text;
-use text::TextRenderer;
+
+mod renderer;
+pub use renderer::Renderer;
+mod state;
 
 mod types;
-use types::RawQuad;
-pub use types::{Color, Quad};
+pub use types::{Color, Quad, Rect};

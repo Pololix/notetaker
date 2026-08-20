@@ -1,91 +1,52 @@
-use crate::{Color, Quad, text::atlas::GlyphAtlas};
+// TODO:
+// - remove hardcoded fallbacks and metrics (i.e. locale, fallback path, metrics...)
+// - gather dynamically the family/ies
 
+use crate::text::glyph_atlas::GlyphAtlas;
+
+const LOCALE: &str = "en-US";
+const DEFAULT_PATH: &str =
+    "/home/Pablo/repos/notetaker/defaults/fonts/JetBrainsMonoNerdFontMono-Regular.ttf";
+
+#[non_exhaustive]
+#[derive(Debug, thiserror::Error)]
+pub enum TextRendererError {
+    #[error("Failed to load the font: {0}")]
+    FontLoading(#[from] std::io::Error),
+}
+
+#[derive(Debug)]
 pub struct TextRenderer {
-    font_system: cosmic_text::FontSystem,
-    buffer: cosmic_text::Buffer,
-    attributes: cosmic_text::Attrs<'static>,
-    cache: cosmic_text::SwashCache,
     atlas: GlyphAtlas,
+
+    atlas_texture: wgpu::Texture,
+    pub bind_group: wgpu::BindGroup,
+    pub bind_layout: wgpu::BindGroupLayout,
 }
 
 impl TextRenderer {
-    pub fn new() -> Self {
-        let mut database = cosmic_text::fontdb::Database::new();
-        database
-            .load_font_file(
-                "/home/Pablo/repos/notetaker/defaults/fonts/JetBrainsMonoNerdFontMono-Regular.ttf",
-            )
-            .expect("Failed to load font");
-        let mut font_system =
-            cosmic_text::FontSystem::new_with_locale_and_db("en-US".to_string(), database);
+    pub fn new(device: &wgpu::Device) -> Result<Self, TextRendererError> {
+        // load user fonts
+        // if unable fallback to defaults
+        // only if unable return (no way to render text without a font)
+        // let mut fonts = cosmic_text::fontdb::Database::new();
+        // fonts.load_font_file(DEFAULT_PATH)?;
 
-        let metrics = cosmic_text::Metrics::relative(100.0, 1.2);
-        let buffer = cosmic_text::Buffer::new(&mut font_system, metrics);
+        // let mut font_system =
+        //     cosmic_text::FontSystem::new_with_locale_and_db(LOCALE.to_string(), fonts);
+        // let attrs = cosmic_text::Attrs::new()
+        //     .family(cosmic_text::Family::Name("JetBrainsMono Nerd Font Mono"));
+        // let cache = cosmic_text::SwashCache::new();
 
-        let attributes = cosmic_text::Attrs::new()
-            .family(cosmic_text::Family::Name("JetBrainsMono Nerd Font Mono"));
-        let cache = cosmic_text::SwashCache::new();
         let atlas = GlyphAtlas::new(1024, 1024);
 
-        Self {
-            font_system,
-            buffer,
-            attributes,
-            cache,
-            atlas,
-        }
-    }
-    pub fn layout_text(&mut self, text: &str, x: u32, y: u32, color: Color) -> Vec<Quad> {
-        let mut buffer = self.buffer.borrow_with(&mut self.font_system);
-        buffer.set_text(
-            text,
-            &self.attributes,
-            cosmic_text::Shaping::Basic,
-            Some(cosmic_text::Align::Left),
-        );
-
-        let glyphs: Vec<cosmic_text::LayoutGlyph> = buffer
-            .layout_runs()
-            .flat_map(|run| run.glyphs.iter().cloned())
-            .collect();
-        let mut quads: Vec<Quad> = vec![];
-        let mut current_x = x;
-        for glyph in glyphs {
-            let (key, _offset_x, _offset_y) = cosmic_text::CacheKey::new(
-                glyph.font_id,
-                glyph.glyph_id,
-                glyph.font_size,
-                (glyph.x, glyph.y),
-                glyph.font_weight,
-                glyph.cache_key_flags,
-            );
-            if let Some(image) = self.cache.get_image(&mut self.font_system, key) {
-                let glyph_position = self.atlas.add(key, image);
-                quads.push(Quad {
-                    x: current_x,
-                    y: y,
-                    width: glyph_position.width,
-                    height: glyph_position.height,
-                    color: color,
-                    min_u: glyph_position.x as f32 / self.atlas.max_x as f32,
-                    min_v: glyph_position.y as f32 / self.atlas.max_y as f32,
-                    max_u: (glyph_position.x + glyph_position.width) as f32
-                        / self.atlas.max_x as f32,
-                    max_v: (glyph_position.y + glyph_position.height) as f32
-                        / self.atlas.max_y as f32,
-                });
-                current_x += glyph.w as u32;
-            }
-        }
-        quads
-    }
-
-    pub fn create_atlas_texture(&self, device: &wgpu::Device) -> wgpu::Texture {
-        device.create_texture(&wgpu::TextureDescriptor {
+        // create gpu resources
+        // note: we use the r channel (u8, norm 0.0 to 1.0) to express alpha
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: None,
             size: wgpu::Extent3d {
-                width: self.atlas.max_x,
-                height: self.atlas.max_y,
+                width: atlas.width,
+                height: atlas.height,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -94,13 +55,67 @@ impl TextRenderer {
             format: wgpu::TextureFormat::R8Unorm,
             usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
+        });
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            ..Default::default()
+        });
+
+        // expect a texture (binding 0) and a sampler (binding 1)
+        let bind_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("TextRenderer binding group layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("TextRenderer binding group"),
+            layout: &bind_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
+        });
+
+        Ok(Self {
+            atlas,
+            atlas_texture: texture,
+            bind_group,
+            bind_layout,
         })
     }
 
-    pub fn write_atlas_texture(&self, queue: &wgpu::Queue, texture: &wgpu::Texture) {
+    pub fn layout_text() {}
+
+    pub fn write_texture(&self, queue: &wgpu::Queue) {
         queue.write_texture(
             wgpu::TexelCopyTextureInfo {
-                texture,
+                texture: &self.atlas_texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
@@ -108,28 +123,14 @@ impl TextRenderer {
             &self.atlas.contents,
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
-                bytes_per_row: Some(self.atlas.max_x),
-                rows_per_image: Some(self.atlas.max_y),
+                bytes_per_row: Some(self.atlas.width),
+                rows_per_image: Some(self.atlas.height),
             },
             wgpu::Extent3d {
-                width: self.atlas.max_x,
-                height: self.atlas.max_y,
+                width: self.atlas.width,
+                height: self.atlas.height,
                 depth_or_array_layers: 1,
             },
         );
-    }
-
-    pub fn create_atlas_view(&self, texture: &wgpu::Texture) -> wgpu::TextureView {
-        texture.create_view(&wgpu::TextureViewDescriptor::default())
-    }
-
-    pub fn create_atlas_sampler(&self, device: &wgpu::Device) -> wgpu::Sampler {
-        device.create_sampler(&wgpu::SamplerDescriptor {
-            mag_filter: wgpu::FilterMode::Nearest,
-            min_filter: wgpu::FilterMode::Nearest,
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            ..Default::default()
-        })
     }
 }

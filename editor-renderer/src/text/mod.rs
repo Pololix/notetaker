@@ -1,4 +1,4 @@
-mod atlas;
+mod glyph_atlas;
 
 mod text_renderer;
-pub use crate::text::text_renderer::TextRenderer;
+pub use text_renderer::{TextRenderer, TextRendererError};

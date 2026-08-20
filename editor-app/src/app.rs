@@ -51,14 +51,10 @@ impl Window {
     }
 
     fn translate_window_event(&self, event: WindowEvent) {
-        let input_event = match event {
-            _ => {
-                println!("No functionality added for event: {}", event);
-                return;
-            }
+        let input_event: EditorInputEvent = match event {
+            _ => return,
         };
 
-        todo!("populare window event matches");
-        // self.editor.handle_input_event(input_event);
+        self.editor.handle_input_event(input_event);
     }
 }
