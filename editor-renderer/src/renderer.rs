@@ -1,14 +1,14 @@
 use crate::{
     state::{RendererState, RendererStateError},
     text::{TextRenderer, TextRendererError},
-    types::RawQuad,
+    types::Quad,
 };
 use std::sync::Arc;
-use wgpu::RenderPipeline;
+use wgpu::util::DeviceExt;
 
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]
-enum RendererError {
+pub enum RendererError {
     #[error("Failed to initialize the renderer backend: {0}")]
     RendererStateCreation(#[from] RendererStateError),
 
@@ -20,16 +20,15 @@ pub struct Renderer {
     state: RendererState,
     text: TextRenderer,
 
-    pipeline: RenderPipeline,
+    pipeline: wgpu::RenderPipeline,
 }
 
 impl Renderer {
     pub fn new<T: wgpu::DisplayAndWindowHandle + 'static>(
         window: Arc<T>,
-        width: u32,
-        height: u32,
+        viewport: (u32, u32),
     ) -> Result<Self, RendererError> {
-        let state = RendererState::new(window, width, height)?;
+        let state = RendererState::new(window, viewport)?;
         let text = TextRenderer::new(&state.device)?;
 
         let shader = state
@@ -42,18 +41,19 @@ impl Renderer {
             module: &shader,
             entry_point: Some("vs_main"),
             compilation_options: wgpu::PipelineCompilationOptions::default(),
-            buffers: &[Some(wgpu::VertexBufferLayout {
-                array_stride: std::mem::size_of::<RawQuad>() as u64,
-                // make instance buffer
-                step_mode: wgpu::VertexStepMode::Instance,
-                attributes: &wgpu::vertex_attr_array![
-                    0 => Float32x2,
-                    1 => Float32x2,
-                    2 => Float32x4,
-                    3 => Float32x2,
-                    4 => Float32x2,
-                ],
-            })],
+            buffers: &[
+                // quad instance buffer
+                Some(wgpu::VertexBufferLayout {
+                    array_stride: std::mem::size_of::<Quad>() as u64,
+                    step_mode: wgpu::VertexStepMode::Instance,
+                    attributes: &wgpu::vertex_attr_array![
+                        0 => Float32x2, // pos
+                        1 => Float32x2, // size
+                        2 => Float32x4, // color
+                    ],
+                }),
+                // textured quad instance buffer (text)
+            ],
         };
         let fragment_state = wgpu::FragmentState {
             module: &shader,
@@ -98,18 +98,74 @@ impl Renderer {
         })
     }
 
-    pub fn resize_surface(&mut self, width: u32, height: u32) {
-        if width == 0 || height == 0 {
+    pub fn set_viewport(&mut self, viewport: (u32, u32)) {
+        if viewport.0 == 0 || viewport.1 == 0 {
             return;
         }
 
-        self.state.config.width = width;
-        self.state.config.height = height;
+        self.state.config.width = viewport.0;
+        self.state.config.height = viewport.1;
 
         self.state
             .surface
             .configure(&self.state.device, &self.state.config);
     }
 
-    //pub fn render()
+    pub fn render(&self, quads: &[Quad]) {
+        let status = self.state.surface.get_current_texture();
+
+        match status {
+            wgpu::CurrentSurfaceTexture::Success(texture)
+            | wgpu::CurrentSurfaceTexture::Suboptimal(texture) => {
+                let view = texture
+                    .texture
+                    .create_view(&wgpu::TextureViewDescriptor::default());
+
+                let instance_buffer =
+                    self.state
+                        .device
+                        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                            label: Some("Instance buffer of quads"),
+                            contents: bytemuck::cast_slice(&quads),
+                            usage: wgpu::BufferUsages::VERTEX,
+                        });
+
+                let mut encoder = self
+                    .state
+                    .device
+                    .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+
+                let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &view,
+                        depth_slice: None,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(wgpu::Color {
+                                r: 0.0,
+                                g: 0.0,
+                                b: 0.0,
+                                a: 1.0,
+                            }),
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    ..Default::default()
+                });
+
+                render_pass.set_pipeline(&self.pipeline);
+                render_pass.set_bind_group(0, &self.text.bind_group, &[]);
+                render_pass.set_vertex_buffer(0, instance_buffer.slice(..));
+                render_pass.draw(0..4, 0..quads.len() as u32);
+
+                drop(render_pass);
+
+                let command = encoder.finish();
+                self.text.write_texture(&self.state.queue);
+                self.state.queue.submit([command]);
+                self.state.queue.present(texture);
+            }
+            _ => panic!(),
+        }
+    }
 }

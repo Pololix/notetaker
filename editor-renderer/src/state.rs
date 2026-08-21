@@ -28,8 +28,7 @@ pub struct RendererState {
 impl RendererState {
     pub fn new<T: wgpu::DisplayAndWindowHandle + 'static>(
         window: Arc<T>,
-        width: u32,
-        height: u32,
+        viewport: (u32, u32),
     ) -> Result<Self, RendererStateError> {
         let instance = wgpu::Instance::default();
 
@@ -41,7 +40,7 @@ impl RendererState {
         }))?;
 
         let config = surface
-            .get_default_config(&adapter, width, height)
+            .get_default_config(&adapter, viewport.0, viewport.1)
             .ok_or(RendererStateError::SurfaceConfiguration)?;
         //let capabilities = surface.get_capabilities(&adapter);
         //then here change any necessary fields
@@ -53,10 +52,10 @@ impl RendererState {
         surface.configure(&device, &config);
 
         Ok(Self {
-            _window: window,
+            window,
             surface,
             config,
-            _adapter: adapter,
+            adapter,
             device,
             queue,
         })

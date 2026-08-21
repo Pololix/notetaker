@@ -1,4 +1,5 @@
 mod app;
+use winit::event_loop::{ControlFlow, EventLoop};
 
 fn main() {
     let event_loop = EventLoop::new().expect("Failed to create event loop");

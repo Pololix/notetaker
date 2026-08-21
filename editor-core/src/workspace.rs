@@ -10,6 +10,7 @@ use crate::{
     editor_events::EditorEvent,
     utils::SplitMode,
 };
+use editor_renderer::{Color, Quad, Rect};
 
 type NodeId = usize;
 pub type WorkspaceId = usize;
@@ -18,7 +19,7 @@ pub type WorkspaceId = usize;
 struct Node {
     pub id: NodeId,
     parent_id: Option<NodeId>,
-    ty: NodeType,
+    pub ty: NodeType,
 }
 
 #[derive(Debug, Clone)]
@@ -48,7 +49,7 @@ pub struct Workspace {
 }
 
 impl Workspace {
-    pub fn new(id: WorkspaceId) -> Self {
+    pub fn new(id: WorkspaceId, viewport: (u32, u32)) -> Self {
         // create default empty buffer
         let default_buffer = Buffer::new(0);
         // attach it to a node and focus
@@ -60,8 +61,8 @@ impl Workspace {
                 surface: Rect {
                     x: 0.0,
                     y: 0.0,
-                    width: window_width as f32,
-                    height: window_height as f32,
+                    width: viewport.0 as f32,
+                    height: viewport.1 as f32,
                 },
             },
         };
@@ -84,7 +85,7 @@ impl Workspace {
         todo!("handle editor event from workspace");
     }
 
-    pub fn adapt_to_viewport(&mut self, width: u32, height: u32) {
+    pub fn adapt_to_viewport(&mut self, viewport: (u32, u32)) {
         // fecth root and restore the geometry workspace-wide
         let root = self
             .nodes
@@ -96,13 +97,35 @@ impl Workspace {
             Rect {
                 x: 0.0,
                 y: 0.0,
-                width,
-                height,
+                width: viewport.0 as f32,
+                height: viewport.1 as f32,
             },
         );
     }
 
-    pub fn add_buffer(&mut self) {
+    pub fn draw(&self, viewport: (u32, u32)) -> Vec<Quad> {
+        self.nodes
+            .iter()
+            .filter_map(|node| match node.ty {
+                NodeType::View {
+                    buffer_id: _,
+                    surface,
+                } => Some(Quad::from_rect(
+                    surface,
+                    viewport,
+                    Color {
+                        r: (node.id as f32 + 1.0) % 3.0,
+                        g: (node.id as f32 + 2.0) % 3.0,
+                        b: (node.id as f32 + 3.0) % 3.0,
+                        a: 1.0,
+                    },
+                )),
+                NodeType::Split { .. } => None,
+            })
+            .collect()
+    }
+
+    pub fn add_buffer(&mut self, viewport: (u32, u32)) {
         match self.active_id {
             Some(_) => {
                 // by default the new split is vertical
@@ -121,8 +144,8 @@ impl Workspace {
                         surface: Rect {
                             x: 0.0,
                             y: 0.0,
-                            width: window_width as f32,
-                            height: window_height as f32,
+                            width: viewport.0 as f32,
+                            height: viewport.1 as f32,
                         },
                     },
                 };
