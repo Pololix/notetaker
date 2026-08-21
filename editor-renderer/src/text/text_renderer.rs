@@ -114,7 +114,7 @@ impl TextRenderer {
         })
     }
 
-    // pub fn render_text(&mut self, text: &str, rect: Rect, color: Color) -> Vec<Quad> {}
+    // pub fn draw_text(&mut self, text: &str, rect: Rect, color: Color) -> Vec<Quad> {}
 
     pub fn write_texture(&self, queue: &wgpu::Queue) {
         queue.write_texture(

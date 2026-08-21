@@ -1,3 +1,4 @@
+use editor_common::Viewport;
 use std::sync::Arc;
 
 #[non_exhaustive]
@@ -28,7 +29,7 @@ pub struct RendererState {
 impl RendererState {
     pub fn new<T: wgpu::DisplayAndWindowHandle + 'static>(
         window: Arc<T>,
-        viewport: (u32, u32),
+        viewport: Viewport,
     ) -> Result<Self, RendererStateError> {
         let instance = wgpu::Instance::default();
 
@@ -40,7 +41,7 @@ impl RendererState {
         }))?;
 
         let config = surface
-            .get_default_config(&adapter, viewport.0, viewport.1)
+            .get_default_config(&adapter, viewport.width, viewport.height)
             .ok_or(RendererStateError::SurfaceConfiguration)?;
         //let capabilities = surface.get_capabilities(&adapter);
         //then here change any necessary fields

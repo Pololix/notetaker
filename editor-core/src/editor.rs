@@ -10,6 +10,7 @@ use crate::{
     },
     workspace::{SplitMode, Workspace, WorkspaceId, WorkspaceView},
 };
+use editor_common::Viewport;
 
 #[derive(Debug, Clone, Copy)]
 pub enum UserMode {
@@ -19,7 +20,7 @@ pub enum UserMode {
 
 #[derive(Debug)]
 pub struct Editor {
-    viewport: (u32, u32),
+    viewport: Viewport,
     workspaces: Vec<Workspace>,
     active_id: WorkspaceId,
     mode: UserMode,
@@ -33,7 +34,10 @@ pub struct EditorView {
 
 impl Editor {
     pub fn new() -> Self {
-        let viewport = (0, 0);
+        let viewport = Viewport {
+            width: 0,
+            height: 0,
+        };
         let default_workspace = Workspace::new(0, viewport);
 
         // create null-dimension viewport and resize on window creation/resize
@@ -45,7 +49,7 @@ impl Editor {
         }
     }
 
-    pub fn set_viewport(&mut self, viewport: (u32, u32)) {
+    pub fn set_viewport(&mut self, viewport: Viewport) {
         self.viewport = viewport;
         let index = self.get_index(self.active_id);
         self.workspaces[index].adapt_to_viewport(viewport);

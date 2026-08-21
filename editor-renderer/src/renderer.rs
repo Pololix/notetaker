@@ -3,6 +3,7 @@ use crate::{
     text::{TextRenderer, TextRendererError},
     types::Quad,
 };
+use editor_common::Viewport;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
@@ -26,7 +27,7 @@ pub struct Renderer {
 impl Renderer {
     pub fn new<T: wgpu::DisplayAndWindowHandle + 'static>(
         window: Arc<T>,
-        viewport: (u32, u32),
+        viewport: Viewport,
     ) -> Result<Self, RendererError> {
         let state = RendererState::new(window, viewport)?;
         let text = TextRenderer::new(&state.device)?;
@@ -98,13 +99,13 @@ impl Renderer {
         })
     }
 
-    pub fn set_viewport(&mut self, viewport: (u32, u32)) {
-        if viewport.0 == 0 || viewport.1 == 0 {
+    pub fn set_viewport(&mut self, viewport: Viewport) {
+        if viewport.width == 0 || viewport.height == 0 {
             return;
         }
 
-        self.state.config.width = viewport.0;
-        self.state.config.height = viewport.1;
+        self.state.config.width = viewport.width;
+        self.state.config.height = viewport.height;
 
         self.state
             .surface

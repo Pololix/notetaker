@@ -11,7 +11,7 @@ use crate::{
     buffer::{Buffer, BufferId, BufferView},
     event::workspace_event::WorkspaceCommand,
 };
-use editor_common::Rect;
+use editor_common::{Rect, Viewport};
 
 type NodeId = usize;
 pub type WorkspaceId = usize;
@@ -61,7 +61,7 @@ pub struct WorkspaceView {
 }
 
 impl Workspace {
-    pub fn new(id: WorkspaceId, viewport: (u32, u32)) -> Self {
+    pub fn new(id: WorkspaceId, viewport: Viewport) -> Self {
         // create default empty buffer
         let default_buffer = Buffer::new(0);
         // attach it to a node and focus
@@ -73,8 +73,8 @@ impl Workspace {
                 surface: Rect {
                     x: 0.0,
                     y: 0.0,
-                    width: viewport.0 as f32,
-                    height: viewport.1 as f32,
+                    width: viewport.width as f32,
+                    height: viewport.height as f32,
                 },
             },
         };
@@ -93,7 +93,7 @@ impl Workspace {
         }
     }
 
-    pub fn adapt_to_viewport(&mut self, viewport: (u32, u32)) {
+    pub fn adapt_to_viewport(&mut self, viewport: Viewport) {
         // fecth root and restore the geometry workspace-wide
         let root = self
             .nodes
@@ -105,8 +105,8 @@ impl Workspace {
             Rect {
                 x: 0.0,
                 y: 0.0,
-                width: viewport.0 as f32,
-                height: viewport.1 as f32,
+                width: viewport.width as f32,
+                height: viewport.height as f32,
             },
         );
     }
@@ -138,7 +138,7 @@ impl Workspace {
         }
     }
 
-    fn add_buffer(&mut self, viewport: (u32, u32)) {
+    fn add_buffer(&mut self, viewport: Viewport) {
         match self.active_id {
             Some(_) => {
                 // by default the new split is vertical
@@ -157,8 +157,8 @@ impl Workspace {
                         surface: Rect {
                             x: 0.0,
                             y: 0.0,
-                            width: viewport.0 as f32,
-                            height: viewport.1 as f32,
+                            width: viewport.width as f32,
+                            height: viewport.height as f32,
                         },
                     },
                 };

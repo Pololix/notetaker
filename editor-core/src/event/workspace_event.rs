@@ -1,9 +1,10 @@
 use crate::workspace::SplitMode;
+use editor_common::Viewport;
 
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy)]
 pub enum WorkspaceCommand {
-    OpenBuffer { viewport: (u32, u32) },
+    OpenBuffer { viewport: Viewport },
     CloseBuffer,
     SplitBuffer { mode: SplitMode },
 }

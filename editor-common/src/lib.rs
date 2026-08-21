@@ -6,3 +6,9 @@ pub struct Rect {
     pub width: f32,
     pub height: f32,
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct Viewport {
+    pub width: u32,
+    pub height: u32,
+}

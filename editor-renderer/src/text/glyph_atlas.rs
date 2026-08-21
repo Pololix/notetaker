@@ -3,12 +3,16 @@ use std::collections::HashMap;
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]
 enum GlyphAtlasError {
-    #[error("Failed to load new glyph because of a lack of space")]
+    #[error(
+        "Failed to load new glyph because of a lack of space:
+        atlas is already packed or glyph is too large to fit"
+    )]
     Overflow,
 }
 
+// atlas region with (0,0) at left-lower corner
 #[derive(Debug, Clone, Copy)]
-struct GlyphPosition {
+struct AtlasRegion {
     pub x: u32,
     pub y: u32,
     pub width: u32,
@@ -19,12 +23,13 @@ struct GlyphPosition {
 pub struct GlyphAtlas {
     pub width: u32,
     pub height: u32,
+
     next_x: u32,
     next_y: u32,
     current_shelf_height: u32,
 
     pub contents: Vec<u8>,
-    cache: HashMap<cosmic_text::CacheKey, GlyphPosition>,
+    cache: HashMap<cosmic_text::CacheKey, AtlasRegion>,
 }
 
 impl GlyphAtlas {
@@ -45,19 +50,18 @@ impl GlyphAtlas {
         &mut self,
         key: cosmic_text::CacheKey,
         image: &cosmic_text::SwashImage,
-    ) -> Result<GlyphPosition, GlyphAtlasError> {
+    ) -> Result<AtlasRegion, GlyphAtlasError> {
         // early return if already mapped
         if self.cache.contains_key(&key) {
             return Ok(self.cache[&key]);
         }
 
-        // check for horizontal space
+        // check for space
         if self.next_x + image.placement.width > self.width {
             self.next_y += self.current_shelf_height;
             self.next_x = 0;
             self.current_shelf_height = 0;
         }
-        // check for vertical space
         if self.next_y + image.placement.height > self.height {
             return Err(GlyphAtlasError::Overflow);
         }
@@ -65,8 +69,19 @@ impl GlyphAtlas {
             self.current_shelf_height = image.placement.height;
         }
 
-        // map new entry and move pointer
-        let position = GlyphPosition {
+        // copy data to the atlas contents row by row
+        for i in 0..image.placement.height {
+            let dst_start = ((self.next_y + i) * self.width + self.next_x) as usize;
+            let dst_end = dst_start + image.placement.width as usize;
+
+            let src_start = (i * image.placement.width) as usize;
+            let src_end = src_start + image.placement.width as usize;
+
+            self.contents[dst_start..dst_end].copy_from_slice(&image.data[src_start..src_end]);
+        }
+
+        // map new entry and move pointer for the next write
+        let position = AtlasRegion {
             x: self.next_x,
             y: self.next_y,
             width: image.placement.width,

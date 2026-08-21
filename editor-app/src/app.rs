@@ -1,3 +1,4 @@
+use editor_common::Viewport;
 use editor_core::{
     Editor,
     event::input_event::{InputEvent, Key, KeyState, Modifiers},
@@ -31,7 +32,10 @@ impl ApplicationHandler for App {
 
         self.window_id = Some(window.id());
         let size = window.inner_size();
-        let viewport = (size.width, size.height);
+        let viewport = Viewport {
+            width: size.width,
+            height: size.height,
+        };
 
         self.renderer = match Renderer::new(window, viewport) {
             Ok(instance) => Some(instance),
@@ -70,7 +74,10 @@ impl ApplicationHandler for App {
                     None => return,
                 };
 
-                let viewport = (size.width, size.height);
+                let viewport = Viewport {
+                    width: size.width,
+                    height: size.height,
+                };
                 renderer.set_viewport(viewport);
                 self.editor.set_viewport(viewport);
                 return;
