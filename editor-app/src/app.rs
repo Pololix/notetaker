@@ -60,9 +60,9 @@ impl ApplicationHandler for App {
                     Some(renderer) => renderer,
                     None => return,
                 };
-                let quads = self.editor.render_active();
-                renderer.render(&quads);
-                return;
+                let editor_view = self.editor.get_view();
+
+                todo!();
             }
             WindowEvent::Resized(size) => {
                 let renderer = match &mut self.renderer {

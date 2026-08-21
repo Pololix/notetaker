@@ -8,10 +8,10 @@
 // - movement between buffers (only view nodes)
 
 use crate::{
-    buffer::{Buffer, BufferId},
+    buffer::{Buffer, BufferId, BufferView},
     event::workspace_event::WorkspaceCommand,
 };
-use editor_renderer::{Color, Quad, Rect};
+use editor_common::Rect;
 
 type NodeId = usize;
 pub type WorkspaceId = usize;
@@ -37,7 +37,7 @@ enum NodeType {
         second_id: NodeId,
         area: Rect,
     },
-    View {
+    Buffer {
         buffer_id: BufferId,
         surface: Rect,
     },
@@ -55,6 +55,11 @@ pub struct Workspace {
     next_buff_id: BufferId,
 }
 
+#[derive(Debug)]
+pub struct WorkspaceView {
+    pub buffer_views: Vec<BufferView>,
+}
+
 impl Workspace {
     pub fn new(id: WorkspaceId, viewport: (u32, u32)) -> Self {
         // create default empty buffer
@@ -63,7 +68,7 @@ impl Workspace {
         let root_node = Node {
             id: 0,
             parent_id: None,
-            ty: NodeType::View {
+            ty: NodeType::Buffer {
                 buffer_id: default_buffer.id,
                 surface: Rect {
                     x: 0.0,
@@ -106,6 +111,24 @@ impl Workspace {
         );
     }
 
+    pub fn get_view(&self) -> WorkspaceView {
+        let buffer_views = self
+            .nodes
+            .iter()
+            .filter_map(|node| match node.ty {
+                NodeType::Buffer { buffer_id, surface } => {
+                    let buffer_index = self.get_buff_index(buffer_id);
+                    let buffer = &self.buffers[buffer_index];
+
+                    Some(buffer.get_view(surface))
+                }
+                NodeType::Split { .. } => None,
+            })
+            .collect();
+
+        WorkspaceView { buffer_views }
+    }
+
     pub fn handle_command(&mut self, cmd: WorkspaceCommand) {
         match cmd {
             WorkspaceCommand::OpenBuffer { viewport } => self.add_buffer(viewport),
@@ -113,28 +136,6 @@ impl Workspace {
             WorkspaceCommand::SplitBuffer { mode } => self.split_active(mode),
             _ => return,
         }
-    }
-
-    pub fn draw(&self, viewport: (u32, u32)) -> Vec<Quad> {
-        self.nodes
-            .iter()
-            .filter_map(|node| match node.ty {
-                NodeType::View {
-                    buffer_id: _,
-                    surface,
-                } => Some(Quad::from_rect(
-                    surface,
-                    viewport,
-                    Color {
-                        r: (node.id as f32 + 1.0) % 3.0,
-                        g: (node.id as f32 + 2.0) % 3.0,
-                        b: (node.id as f32 + 3.0) % 3.0,
-                        a: 1.0,
-                    },
-                )),
-                NodeType::Split { .. } => None,
-            })
-            .collect()
     }
 
     fn add_buffer(&mut self, viewport: (u32, u32)) {
@@ -151,7 +152,7 @@ impl Workspace {
                 let new_root_node = Node {
                     id: self.next_node_id,
                     parent_id: None,
-                    ty: NodeType::View {
+                    ty: NodeType::Buffer {
                         buffer_id: default_buffer.id,
                         surface: Rect {
                             x: 0.0,
@@ -179,7 +180,7 @@ impl Workspace {
 
         // fetch id and geometry if buffer node
         let (buffer_id, surface) = match &self.nodes[active_index].ty {
-            NodeType::View { buffer_id, surface } => (*buffer_id, *surface),
+            NodeType::Buffer { buffer_id, surface } => (*buffer_id, *surface),
             NodeType::Split { .. } => return, // split must be called from a buffer
         };
 
@@ -243,7 +244,7 @@ impl Workspace {
         let first_child = Node {
             id: first_id,
             parent_id: Some(active_id),
-            ty: NodeType::View {
+            ty: NodeType::Buffer {
                 buffer_id,
                 surface: first_surface,
             },
@@ -253,7 +254,7 @@ impl Workspace {
         let second_child = Node {
             id: second_id,
             parent_id: Some(active_id),
-            ty: NodeType::View {
+            ty: NodeType::Buffer {
                 buffer_id,
                 surface: second_surface,
             },
@@ -273,7 +274,7 @@ impl Workspace {
 
         // fetch id if buffer node
         let buffer_id = match &self.nodes[active_index].ty {
-            NodeType::View {
+            NodeType::Buffer {
                 buffer_id,
                 surface: _,
             } => *buffer_id,
@@ -310,7 +311,7 @@ impl Workspace {
 
                 (id, *area)
             }
-            NodeType::View { .. } => return, // parent of the buffer is a buffer
+            NodeType::Buffer { .. } => return, // parent of the buffer is a buffer
         };
         let sibling_index = self.get_node_index(sibling_id);
 
@@ -330,7 +331,7 @@ impl Workspace {
                 self.nodes[first_index].parent_id = Some(parent_id);
                 self.nodes[second_index].parent_id = Some(parent_id);
             }
-            NodeType::View { .. } => {}
+            NodeType::Buffer { .. } => {}
         }
 
         // guard against any reordering of self.nodes
@@ -351,7 +352,7 @@ impl Workspace {
                 second_id,
                 area: _,
             } => (*mode, *first_id, *second_id),
-            NodeType::View {
+            NodeType::Buffer {
                 buffer_id: _,
                 surface,
             } => {

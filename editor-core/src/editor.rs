@@ -3,13 +3,13 @@
 // - make default keybinds thorugh the Lua API
 
 use crate::{
-    event::input_event::{Key, KeyState},
     event::{
-        editor_event::EditorCommand, input_event::InputEvent, workspace_event::WorkspaceCommand,
+        editor_event::EditorCommand,
+        input_event::{InputEvent, Key, KeyState},
+        workspace_event::WorkspaceCommand,
     },
-    workspace::{SplitMode, Workspace, WorkspaceId},
+    workspace::{SplitMode, Workspace, WorkspaceId, WorkspaceView},
 };
-use editor_renderer::Quad;
 
 #[derive(Debug, Clone, Copy)]
 pub enum UserMode {
@@ -23,6 +23,12 @@ pub struct Editor {
     workspaces: Vec<Workspace>,
     active_id: WorkspaceId,
     mode: UserMode,
+}
+
+#[derive(Debug)]
+pub struct EditorView {
+    pub user_mode: UserMode,
+    pub workspace_view: WorkspaceView,
 }
 
 impl Editor {
@@ -45,9 +51,14 @@ impl Editor {
         self.workspaces[index].adapt_to_viewport(viewport);
     }
 
-    pub fn render_active(&self) -> Vec<Quad> {
+    pub fn get_view(&self) -> EditorView {
         let index = self.get_index(self.active_id);
-        self.workspaces[index].draw(self.viewport)
+        let workspace_view = self.workspaces[index].get_view();
+
+        EditorView {
+            user_mode: self.mode,
+            workspace_view,
+        }
     }
 
     pub fn handle_input_event(&mut self, input_event: InputEvent) {

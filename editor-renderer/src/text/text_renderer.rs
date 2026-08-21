@@ -2,7 +2,11 @@
 // - remove hardcoded fallbacks and metrics (i.e. locale, fallback path, metrics...)
 // - gather dynamically the family/ies
 
-use crate::text::glyph_atlas::GlyphAtlas;
+use crate::{
+    text::glyph_atlas::GlyphAtlas,
+    types::{Color, Quad},
+};
+use editor_common::Rect;
 
 const LOCALE: &str = "en-US";
 const DEFAULT_PATH: &str =
@@ -42,7 +46,7 @@ impl TextRenderer {
 
         // create gpu resources
         // note: we use the r channel (u8, norm 0.0 to 1.0) to express alpha
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
+        let atlas_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: None,
             size: wgpu::Extent3d {
                 width: atlas.width,
@@ -56,7 +60,7 @@ impl TextRenderer {
             usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
         });
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let view = atlas_texture.create_view(&wgpu::TextureViewDescriptor::default());
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             mag_filter: wgpu::FilterMode::Nearest,
             min_filter: wgpu::FilterMode::Nearest,
@@ -104,13 +108,13 @@ impl TextRenderer {
 
         Ok(Self {
             atlas,
-            atlas_texture: texture,
+            atlas_texture,
             bind_group,
             bind_layout,
         })
     }
 
-    pub fn layout_text() {}
+    // pub fn render_text(&mut self, text: &str, rect: Rect, color: Color) -> Vec<Quad> {}
 
     pub fn write_texture(&self, queue: &wgpu::Queue) {
         queue.write_texture(

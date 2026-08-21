@@ -415,6 +415,7 @@ name = "editor-app"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "editor-common",
  "editor-core",
  "editor-renderer",
  "thiserror 2.0.20",
@@ -422,11 +423,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "editor-common"
+version = "0.1.0"
+
+[[package]]
 name = "editor-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "editor-renderer",
+ "editor-common",
  "ropey",
  "thiserror 2.0.20",
 ]
@@ -438,6 +443,7 @@ dependencies = [
  "anyhow",
  "bytemuck",
  "cosmic-text",
+ "editor-common",
  "pollster",
  "thiserror 2.0.20",
  "wgpu",

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+editor-common = { path = "../editor-common" }
 wgpu = "30"
 pollster = "1.0.1"
 bytemuck = "1.25.2"

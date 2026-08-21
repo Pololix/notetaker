@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+editor-common = { path = "../editor-common" }
 editor-core = { path = "../editor-core" }
 editor-renderer = { path = "../editor-renderer" }
 winit = "0.30"

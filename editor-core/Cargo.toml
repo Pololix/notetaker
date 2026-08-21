@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-editor-renderer = { path = "../editor-renderer" }
+editor-common = { path = "../editor-common" }
 ropey = "1.6.1"
 anyhow = { workspace = true }
 thiserror = { workspace = true }

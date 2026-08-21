@@ -1,3 +1,5 @@
+use editor_common::Rect;
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Color {
@@ -5,26 +7,6 @@ pub struct Color {
     pub g: f32,
     pub b: f32,
     pub a: f32,
-}
-
-impl std::fmt::Display for Color {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Color(r: {}, g: {}, b: {}, a: {})",
-            self.r, self.g, self.b, self.a
-        )
-    }
-}
-
-// cpu-facing region screen coordinates
-// note: (0,0) is left uppper corner of the screen and (x, y) of the rect
-#[derive(Debug, Clone, Copy)]
-pub struct Rect {
-    pub x: f32,
-    pub y: f32,
-    pub width: f32,
-    pub height: f32,
 }
 
 // gpu-backend-facing object with rendering info
@@ -39,15 +21,6 @@ pub struct Quad {
     pub color: Color,
 }
 
-impl std::fmt::Display for Quad {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Quad {{ x: {}, y: {}, width: {}, height: {}, color: {} }}",
-            self.x, self.y, self.width, self.height, self.color,
-        )
-    }
-}
 // translate screen space ((0,0) at upper-left) to
 // clip space ((0,0) at center and (-1,1) range on both axis)
 impl Quad {
