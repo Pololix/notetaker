@@ -1,14 +1,18 @@
 // TODO
 // - hold several workspaces
+// - make default keybinds thorugh the Lua API
 
 use crate::{
-    editor_events::{EditorEvent, EditorInputEvent},
-    workspace::{Workspace, WorkspaceId},
+    event::input_event::{Key, KeyState},
+    event::{
+        editor_event::EditorCommand, input_event::InputEvent, workspace_event::WorkspaceCommand,
+    },
+    workspace::{SplitMode, Workspace, WorkspaceId},
 };
 use editor_renderer::Quad;
 
-#[derive(Debug)]
-enum UserMode {
+#[derive(Debug, Clone, Copy)]
+pub enum UserMode {
     Normal,
     Insert,
 }
@@ -46,27 +50,65 @@ impl Editor {
         self.workspaces[index].draw(self.viewport)
     }
 
-    pub fn handle_input_event(&mut self, input_event: EditorInputEvent) {
-        let event = match self.mode {
-            UserMode::Normal => Self::normal_input_event(input_event),
-            UserMode::Insert => Self::insert_input_event(input_event),
+    pub fn handle_input_event(&mut self, input_event: InputEvent) {
+        // route events to be handled based on the current mode
+        let cmd = match self.mode {
+            UserMode::Normal => self.normal_input_event(input_event),
+            UserMode::Insert => self.insert_input_event(input_event),
         };
 
-        if let Some(editor_event) = event {
-            let index = self.get_index(self.active_id);
-            self.workspaces[index].handle_event(editor_event);
+        match cmd {
+            Some(cmd) => self.handle_command(cmd),
+            None => return, // no command generated for the given input
         }
     }
 
-    fn normal_input_event(input_event: EditorInputEvent) -> Option<EditorEvent> {
-        match input_event {
+    fn normal_input_event(&self, event: InputEvent) -> Option<EditorCommand> {
+        match event {
+            InputEvent::Key {
+                key,
+                state,
+                mods: _,
+            } => {
+                if state != KeyState::Pressed {
+                    return None;
+                }
+
+                match key {
+                    Key::Character(key) => match key.as_str() {
+                        "n" => Some(EditorCommand::Workspace(WorkspaceCommand::OpenBuffer {
+                            viewport: self.viewport,
+                        })),
+                        "d" => Some(EditorCommand::Workspace(WorkspaceCommand::CloseBuffer)),
+                        "v" => Some(EditorCommand::Workspace(WorkspaceCommand::SplitBuffer {
+                            mode: SplitMode::Vertical,
+                        })),
+                        "h" => Some(EditorCommand::Workspace(WorkspaceCommand::SplitBuffer {
+                            mode: SplitMode::Horizontal,
+                        })),
+                        _ => None,
+                    },
+
+                    _ => None,
+                }
+            }
             _ => None,
         }
     }
 
-    fn insert_input_event(input_event: EditorInputEvent) -> Option<EditorEvent> {
-        match input_event {
+    fn insert_input_event(&self, event: InputEvent) -> Option<EditorCommand> {
+        match event {
             _ => None,
+        }
+    }
+
+    fn handle_command(&mut self, cmd: EditorCommand) {
+        match cmd {
+            EditorCommand::Workspace(cmd) => {
+                let index = self.get_index(self.active_id);
+                self.workspaces[index].handle_command(cmd);
+            }
+            _ => return,
         }
     }
 

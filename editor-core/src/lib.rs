@@ -3,9 +3,6 @@ mod buffer;
 mod editor;
 pub use editor::Editor;
 
-mod editor_events;
-pub use editor_events::EditorInputEvent;
+pub mod event;
 
 mod workspace;
-
-mod utils;

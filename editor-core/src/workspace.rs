@@ -4,25 +4,32 @@
 // - make API config-driven
 // - assert tree invariants
 // - modify to allow resizing buffer surfaces
+// - rethink create/new buffer relation and introduce errors
+// - movement between buffers (only view nodes)
 
 use crate::{
     buffer::{Buffer, BufferId},
-    editor_events::EditorEvent,
-    utils::SplitMode,
+    event::workspace_event::WorkspaceCommand,
 };
 use editor_renderer::{Color, Quad, Rect};
 
 type NodeId = usize;
 pub type WorkspaceId = usize;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
+pub enum SplitMode {
+    Vertical,
+    Horizontal,
+}
+
+#[derive(Debug, Clone, Copy)]
 struct Node {
     pub id: NodeId,
     parent_id: Option<NodeId>,
     pub ty: NodeType,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 enum NodeType {
     Split {
         mode: SplitMode,
@@ -81,10 +88,6 @@ impl Workspace {
         }
     }
 
-    pub fn handle_event(&mut self, _event: EditorEvent) {
-        todo!("handle editor event from workspace");
-    }
-
     pub fn adapt_to_viewport(&mut self, viewport: (u32, u32)) {
         // fecth root and restore the geometry workspace-wide
         let root = self
@@ -101,6 +104,15 @@ impl Workspace {
                 height: viewport.1 as f32,
             },
         );
+    }
+
+    pub fn handle_command(&mut self, cmd: WorkspaceCommand) {
+        match cmd {
+            WorkspaceCommand::OpenBuffer { viewport } => self.add_buffer(viewport),
+            WorkspaceCommand::CloseBuffer => self.delete_active(),
+            WorkspaceCommand::SplitBuffer { mode } => self.split_active(mode),
+            _ => return,
+        }
     }
 
     pub fn draw(&self, viewport: (u32, u32)) -> Vec<Quad> {
@@ -125,7 +137,7 @@ impl Workspace {
             .collect()
     }
 
-    pub fn add_buffer(&mut self, viewport: (u32, u32)) {
+    fn add_buffer(&mut self, viewport: (u32, u32)) {
         match self.active_id {
             Some(_) => {
                 // by default the new split is vertical
@@ -158,7 +170,7 @@ impl Workspace {
         }
     }
 
-    pub fn split_active(&mut self, split_mode: SplitMode) {
+    fn split_active(&mut self, split_mode: SplitMode) {
         let active_id = match self.active_id {
             Some(id) => id,
             None => return, // no active node to split from
@@ -252,7 +264,7 @@ impl Workspace {
         self.active_id = Some(second_id);
     }
 
-    pub fn delete_active(&mut self) {
+    fn delete_active(&mut self) {
         let active_id = match self.active_id {
             Some(id) => id,
             None => return, // no active node to delete
