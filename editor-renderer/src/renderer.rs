@@ -42,19 +42,16 @@ impl Renderer {
             module: &shader,
             entry_point: Some("vs_main"),
             compilation_options: wgpu::PipelineCompilationOptions::default(),
-            buffers: &[
-                // quad instance buffer
-                Some(wgpu::VertexBufferLayout {
-                    array_stride: std::mem::size_of::<Quad>() as u64,
-                    step_mode: wgpu::VertexStepMode::Instance,
-                    attributes: &wgpu::vertex_attr_array![
-                        0 => Float32x2, // pos
-                        1 => Float32x2, // size
-                        2 => Float32x4, // color
-                    ],
-                }),
-                // textured quad instance buffer (text)
-            ],
+            buffers: &[Some(wgpu::VertexBufferLayout {
+                array_stride: std::mem::size_of::<Quad>() as u64,
+                step_mode: wgpu::VertexStepMode::Instance,
+                attributes: &wgpu::vertex_attr_array![
+                    0 => Float32x2, // pos
+                    1 => Float32x2, // size
+                    2 => Float32x4, // color
+                    3 => Float32x4, // uvs
+                ],
+            })],
         };
         let fragment_state = wgpu::FragmentState {
             module: &shader,
@@ -166,7 +163,7 @@ impl Renderer {
                 self.state.queue.submit([command]);
                 self.state.queue.present(texture);
             }
-            _ => panic!(),
+            _ => todo!("Add behaviour to status other than succesful/suboptimal"),
         }
     }
 }
