@@ -1,22 +1,14 @@
+use crate::types::UvCoords;
 use std::collections::HashMap;
 
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]
-enum GlyphAtlasError {
+pub enum GlyphAtlasError {
     #[error(
         "Failed to load new glyph because of a lack of space:
         atlas is already packed or glyph is too large to fit"
     )]
     Overflow,
-}
-
-// atlas region with (0,0) at left-lower corner
-#[derive(Debug, Clone, Copy)]
-struct AtlasRegion {
-    pub x: u32,
-    pub y: u32,
-    pub width: u32,
-    pub height: u32,
 }
 
 #[derive(Debug)]
@@ -29,7 +21,7 @@ pub struct GlyphAtlas {
     current_shelf_height: u32,
 
     pub contents: Vec<u8>,
-    cache: HashMap<cosmic_text::CacheKey, AtlasRegion>,
+    cache: HashMap<cosmic_text::CacheKey, UvCoords>,
 }
 
 impl GlyphAtlas {
@@ -48,9 +40,9 @@ impl GlyphAtlas {
 
     pub fn add(
         &mut self,
-        key: cosmic_text::CacheKey,
         image: &cosmic_text::SwashImage,
-    ) -> Result<AtlasRegion, GlyphAtlasError> {
+        key: cosmic_text::CacheKey,
+    ) -> Result<UvCoords, GlyphAtlasError> {
         // early return if already mapped
         if self.cache.contains_key(&key) {
             return Ok(self.cache[&key]);
@@ -81,15 +73,20 @@ impl GlyphAtlas {
         }
 
         // map new entry and move pointer for the next write
-        let position = AtlasRegion {
-            x: self.next_x,
-            y: self.next_y,
-            width: image.placement.width,
-            height: image.placement.height,
+        let min_u = self.next_x as f32 / self.width as f32;
+        let min_v = self.next_y as f32 / self.height as f32;
+        let max_u = min_u + (image.placement.width as f32 / self.width as f32);
+        let max_v = min_v + (image.placement.height as f32 / self.height as f32);
+
+        let uvs = UvCoords {
+            min_u,
+            min_v,
+            max_u,
+            max_v,
         };
-        self.cache.insert(key, position);
+        self.cache.insert(key, uvs);
         self.next_x += image.placement.width;
 
-        Ok(position)
+        Ok(uvs)
     }
 }

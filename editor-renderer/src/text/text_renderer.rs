@@ -1,48 +1,53 @@
-// TODO:
-// - remove hardcoded fallbacks and metrics (i.e. locale, fallback path, metrics...)
-// - gather dynamically the family/ies
-
 use crate::{
-    text::glyph_atlas::GlyphAtlas,
+    text::glyph_atlas::{GlyphAtlas, GlyphAtlasError},
     types::{Color, Quad},
 };
 use editor_common::Rect;
 
+// placeholders (fetch from config or automatically from user)
 const LOCALE: &str = "en-US";
 const DEFAULT_PATH: &str =
     "/home/Pablo/repos/notetaker/defaults/fonts/JetBrainsMonoNerdFontMono-Regular.ttf";
+const FONT_SIZE: f32 = 15.0;
 
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]
 pub enum TextRendererError {
     #[error("Failed to load the font: {0}")]
     FontLoading(#[from] std::io::Error),
+
+    #[error("Error ocurred when dealing with the atlas: {0}")]
+    Atlas(#[from] GlyphAtlasError),
 }
 
 #[derive(Debug)]
-pub struct TextRenderer {
+pub struct TextRenderer<'a> {
     atlas: GlyphAtlas,
+    font_system: cosmic_text::FontSystem,
+    cache: cosmic_text::SwashCache,
+    attrs: cosmic_text::Attrs<'a>,
+    buffer: cosmic_text::Buffer,
 
     atlas_texture: wgpu::Texture,
     pub bind_group: wgpu::BindGroup,
     pub bind_layout: wgpu::BindGroupLayout,
 }
 
-impl TextRenderer {
+impl TextRenderer<'_> {
     pub fn new(device: &wgpu::Device) -> Result<Self, TextRendererError> {
-        // load user fonts
-        // if unable fallback to defaults
-        // only if unable return (no way to render text without a font)
-        // let mut fonts = cosmic_text::fontdb::Database::new();
-        // fonts.load_font_file(DEFAULT_PATH)?;
+        // load user declared fonts in the config, if unable fallback to a defualt one
+        let mut fonts = cosmic_text::fontdb::Database::new();
+        fonts.load_font_file(DEFAULT_PATH)?;
 
-        // let mut font_system =
-        //     cosmic_text::FontSystem::new_with_locale_and_db(LOCALE.to_string(), fonts);
-        // let attrs = cosmic_text::Attrs::new()
-        //     .family(cosmic_text::Family::Name("JetBrainsMono Nerd Font Mono"));
+        let mut font_system =
+            cosmic_text::FontSystem::new_with_locale_and_db(LOCALE.to_string(), fonts);
         // let cache = cosmic_text::SwashCache::new();
 
         let atlas = GlyphAtlas::new(1024, 1024);
+        let cache = cosmic_text::SwashCache::new();
+        let attrs = cosmic_text::Attrs::new();
+        let metrics = cosmic_text::Metrics::relative(FONT_SIZE, 1.2);
+        let buffer = cosmic_text::Buffer::new(&mut font_system, metrics);
 
         // create gpu resources
         // note: we use the r channel (u8, norm 0.0 to 1.0) to express alpha
@@ -108,14 +113,64 @@ impl TextRenderer {
 
         Ok(Self {
             atlas,
+            font_system,
+            cache,
+            attrs,
+            buffer,
+
             atlas_texture,
             bind_group,
             bind_layout,
         })
     }
 
-    // pub fn draw_text(&mut self, text: &str, rect: Rect, color: Color) -> Vec<Quad> {}
+    pub fn draw_text(
+        &mut self,
+        text: &str,
+        rect: Rect,
+        color: Color,
+    ) -> Result<Vec<Quad>, TextRendererError> {
+        let mut buffer = self.buffer.borrow_with(&mut self.font_system);
+        buffer.set_size(Some(rect.width), Some(rect.height));
+        buffer.set_text(
+            text,
+            &self.attrs,
+            cosmic_text::Shaping::Advanced,
+            Some(cosmic_text::Align::Left),
+        );
 
+        let mut quads = Vec::new();
+        // collect glyphs from each line as PhysicalGlyph to avoid borrowing issues
+        let glyphs: Vec<cosmic_text::PhysicalGlyph> = buffer
+            .layout_runs()
+            .flat_map(|line| {
+                line.glyphs
+                    .iter()
+                    .map(|glyph| glyph.physical((0.0, 0.0), 1.0))
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        // turn physical glyphs into actual quads
+        for glyph in glyphs {
+            // add bitmap to the atlas if not in already
+            let image = match self.cache.get_image(&mut self.font_system, glyph.cache_key) {
+                Some(image) => image,
+                None => continue, // skip if no image for glyph
+            };
+            let uv_coords = self.atlas.add(&image, glyph.cache_key)?;
+
+            quads.push(Quad {
+                x: rect.x + glyph.x as f32 + image.placement.left as f32,
+                y: rect.y + glyph.y as f32 + image.placement.top as f32,
+                width: image.placement.width as f32,
+                height: image.placement.height as f32,
+                color,
+                uv_coords,
+            });
+        }
+
+        Ok(quads)
+    }
     pub fn write_texture(&self, queue: &wgpu::Queue) {
         queue.write_texture(
             wgpu::TexelCopyTextureInfo {
