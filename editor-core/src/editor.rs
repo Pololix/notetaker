@@ -94,7 +94,7 @@ impl Editor {
                         "n" => Some(EditorCommand::Workspace(WorkspaceCommand::OpenBuffer {
                             viewport: self.viewport,
                         })),
-                        "d" => Some(EditorCommand::Workspace(WorkspaceCommand::CloseBuffer)),
+                        "d" => Some(EditorCommand::Workspace(WorkspaceCommand::QuitBuffer)),
                         "v" => Some(EditorCommand::Workspace(WorkspaceCommand::SplitBuffer {
                             mode: SplitMode::Vertical,
                         })),

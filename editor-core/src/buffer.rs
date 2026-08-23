@@ -21,6 +21,8 @@ pub struct BufferView {
     pub surface: Rect,
     pub text: String,
     pub cursor: usize,
+    pub v_scroll: f32,
+    pub h_scroll: f32,
 }
 
 impl Buffer {
@@ -32,12 +34,8 @@ impl Buffer {
         }
     }
 
-    pub fn get_view(&self, surface: Rect) -> BufferView {
-        BufferView {
-            surface,
-            text: self.contents.to_string(),
-            cursor: self.cursor,
-        }
+    pub fn get_text(&self) -> String {
+        self.contents.to_string()
     }
 
     // quit

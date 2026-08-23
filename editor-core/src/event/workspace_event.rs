@@ -5,7 +5,7 @@ use editor_common::Viewport;
 #[derive(Debug, Clone, Copy)]
 pub enum WorkspaceCommand {
     OpenBuffer { viewport: Viewport },
-    CloseBuffer,
+    QuitBuffer,
     SplitBuffer { mode: SplitMode },
 }
 
@@ -13,6 +13,6 @@ pub enum WorkspaceCommand {
 #[derive(Debug, Clone, Copy)]
 pub enum WorkspaceEvent {
     BufferOpened,
-    BufferClosed,
+    BufferQuit,
     BufferSplitted,
 }
