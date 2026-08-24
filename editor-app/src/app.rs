@@ -1,6 +1,6 @@
 use editor_common::Viewport;
 use editor_core::{
-    Editor,
+    editor::{Editor, EditorError},
     event::input_event::{InputEvent, Key, KeyState, Modifiers},
 };
 use editor_renderer::Renderer;
@@ -15,6 +15,7 @@ use winit::{
 
 type WinitKey = winit::keyboard::Key;
 
+#[derive(Default)]
 pub struct App {
     window_id: Option<WindowId>,
     renderer: Option<Renderer>,
@@ -93,12 +94,8 @@ impl ApplicationHandler for App {
                 return;
             }
             // keyboard input
-            WindowEvent::KeyboardInput {
-                device_id: _,
-                event,
-                is_synthetic: _,
-            } => InputEvent::Key {
-                key: match event.logical_key {
+            WindowEvent::KeyboardInput { event, .. } => {
+                let key = match event.logical_key {
                     WinitKey::Character(str) => Key::Character(str.to_string()),
                     WinitKey::Named(key) => match key {
                         NamedKey::Space => Key::Space,
@@ -129,16 +126,22 @@ impl ApplicationHandler for App {
                         _ => return, // for unused named keys
                     },
                     _ => return, // for unknown/dead keys
-                },
-                state: match event.state {
+                };
+
+                let state = match event.state {
                     ElementState::Pressed => KeyState::Pressed,
                     ElementState::Released => KeyState::Released,
-                },
-                mods: self.current_mods,
-            },
-            _ => return,
+                };
+
+                InputEvent::Key {
+                    key,
+                    state,
+                    mods: self.current_mods,
+                }
+            }
+            // mouse/touch input
+            _ => return, // for unsued window events
         };
-        // mouse/touch input
 
         self.editor.handle_input_event(input_event);
     }
@@ -147,18 +150,6 @@ impl ApplicationHandler for App {
         // keep the loop running
         if let Some(id) = &self.window_id {
             self.window_event(&event_loop, *id, WindowEvent::RedrawRequested);
-        }
-    }
-}
-
-impl App {
-    pub fn new() -> Self {
-        Self {
-            window_id: None,
-            renderer: None,
-            editor: Editor::new(),
-
-            current_mods: Modifiers::default(),
         }
     }
 }
