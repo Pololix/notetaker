@@ -1,9 +1,14 @@
-use crate::{editor::UserMode, event::workspace_event::WorkspaceCommand};
+use crate::{
+    editor::UserMode,
+    event::workspace_event::{WorkspaceCommand, WorkspaceEvent},
+};
 
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy)]
 pub enum EditorCommand {
     ChangeUserMode { to: UserMode },
+    CreateWorkspace,
+    DeleteWorkspace,
 
     Workspace(WorkspaceCommand),
 }
@@ -12,4 +17,8 @@ pub enum EditorCommand {
 #[derive(Debug, Clone, Copy)]
 pub enum EditorEvent {
     UserModeChanged,
+    WorkspaceCreated,
+    WorkspaceDeleted,
+
+    Workspace(WorkspaceEvent),
 }

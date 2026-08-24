@@ -1,8 +1,5 @@
-mod buffer;
-
-mod editor;
-pub use editor::Editor;
-
+pub mod editor;
 pub mod event;
 
+mod buffer;
 mod workspace;

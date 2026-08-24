@@ -1,14 +1,9 @@
-// TODO
-// - add padding between buffers and margins
-// - make API config-driven
-// - modify to allow resizing buffer surfaces
-// - movement between buffers (only view nodes)
-
 use crate::{
-    buffer::{Buffer, BufferId, BufferView},
-    event::workspace_event::WorkspaceCommand,
+    buffer::{Buffer, BufferId},
+    event::workspace_event::{WorkspaceCommand, WorkspaceEvent},
 };
 use editor_common::{Rect, Viewport};
+use std::collections::HashMap;
 
 type NodeId = usize;
 pub type WorkspaceId = usize;
@@ -43,8 +38,7 @@ pub enum SplitMode {
 
 #[derive(Debug, Clone)]
 struct Node {
-    pub id: NodeId,
-    parent_id: Option<NodeId>,
+    pub parent_id: Option<NodeId>,
     pub ty: NodeType,
 }
 
@@ -67,47 +61,35 @@ enum NodeType {
 
 #[derive(Debug)]
 pub struct Workspace {
-    pub id: WorkspaceId,
-
+    nodes: HashMap<NodeId, Node>,
     active_id: Option<NodeId>,
-    nodes: Vec<Node>,
     next_node_id: NodeId,
 
-    buffers: Vec<Buffer>,
+    buffers: HashMap<BufferId, Buffer>,
     next_buff_id: BufferId,
 }
 
-#[derive(Debug)]
-pub struct WorkspaceView {
-    pub buffer_views: Vec<BufferView>,
-}
-
 impl Workspace {
-    pub fn new(id: WorkspaceId, viewport: Viewport) -> Self {
+    pub fn new(viewport: Viewport) -> Result<Self, WorkspaceError> {
         let mut new_self = Self {
-            id,
-            nodes: vec![],
+            nodes: HashMap::new(),
             next_node_id: 0,
-            buffers: vec![],
+            buffers: HashMap::new(),
             next_buff_id: 0,
             active_id: None,
         };
 
-        new_self.add_buffer(Rect {
-            x: 0.0,
-            y: 0.0,
-            width: viewport.width as f32,
-            height: viewport.height as f32,
-        });
+        let _event = new_self.add_buffer(viewport)?;
 
-        new_self
+        Ok(new_self)
     }
 
     pub fn adapt_to_viewport(&mut self, viewport: Viewport) -> Result<(), WorkspaceError> {
-        let root_id = match self.nodes.iter().find(|node| node.parent_id.is_none()) {
-            Some(node) => node.id,
-            None => return Err(WorkspaceError::NullRoot),
+        let root_id = match self.nodes.iter().find(|(_, node)| node.parent_id.is_none()) {
+            Some((id, _)) => *id,
+            None => return Err(WorkspaceError::NullRoot), // possible if empty
         };
+
         self.restore_geometry_recursive(
             root_id,
             Rect {
@@ -121,54 +103,69 @@ impl Workspace {
         Ok(())
     }
 
-    // pub fn get_view(&self) -> Result<WorkspaceView, WorkspaceError> {}
+    pub fn handle_command(
+        &mut self,
+        cmd: WorkspaceCommand,
+    ) -> Result<Option<WorkspaceEvent>, WorkspaceError> {
+        let event = match cmd {
+            WorkspaceCommand::OpenBuffer { viewport } => match self.active_id {
+                Some(_) => Some(self.split_active(SplitMode::Vertical)?),
+                None => Some(self.add_buffer(viewport)?),
+            },
+            WorkspaceCommand::SplitBuffer { mode } => Some(self.split_active(mode)?),
+            WorkspaceCommand::QuitBuffer => Some(self.quit_active()?),
+            _ => None,
+        };
 
-    // pub fn handle_command(&mut self, cmd: WorkspaceCommand) Result<WorkspaceEvent,WorkspaceError> {}
+        Ok(event)
+    }
 
-    fn add_buffer(&mut self, surface: Rect) {
+    fn add_buffer(&mut self, viewport: Viewport) -> Result<WorkspaceEvent, WorkspaceError> {
         // create a new buffer node occupying the given rect
         let buffer_id = self.next_buff_id;
         self.next_buff_id += 1;
-        let buffer = Buffer::new(buffer_id);
+        let buffer = Buffer::new();
 
+        let node_id = self.next_node_id;
+        self.next_node_id += 1;
         let node = Node {
-            id: self.next_node_id,
             parent_id: None,
             ty: NodeType::Buffer {
                 buffer_id,
-                surface,
+                surface: Rect {
+                    x: 0.0,
+                    y: 0.0,
+                    width: viewport.width as f32,
+                    height: viewport.height as f32,
+                },
                 cursor: 0,
                 v_scroll: 0.0,
                 h_scroll: 0.0,
             },
         };
-        self.next_node_id += 1;
-        self.active_id = Some(node.id);
+        self.active_id = Some(node_id);
 
-        self.buffers.push(buffer);
-        self.nodes.push(node);
+        self.buffers.insert(buffer_id, buffer);
+        self.nodes.insert(node_id, node);
+
+        Ok(WorkspaceEvent::BufferOpened)
     }
 
-    fn split_active(&mut self, mode: SplitMode) -> Result<(), WorkspaceError> {
-        let active_id = match self.active_id {
-            Some(id) => id,
+    fn split_active(&mut self, mode: SplitMode) -> Result<WorkspaceEvent, WorkspaceError> {
+        let (active, active_id) = match self.active_id {
+            Some(id) => (self.get_node(id)?.clone(), id),
             None => return Err(WorkspaceError::NullActive),
         };
-        let active_index = self.get_node_index(active_id)?;
 
-        // fetch current buffer surface and id
-        let (buffer_id, surface, cursor, v_scroll, h_scroll) = match &self.nodes[active_index].ty {
+        let (buffer_id, surface, cursor, v_scroll, h_scroll) = match active.ty {
             NodeType::Buffer {
                 buffer_id,
                 surface,
                 cursor,
                 v_scroll,
                 h_scroll,
-            } => (*buffer_id, *surface, *cursor, *v_scroll, *h_scroll),
-
-            NodeType::Split { .. } => {
-                return Err(WorkspaceError::InvalidCaller);
-            }
+            } => (buffer_id, surface, cursor, v_scroll, h_scroll),
+            NodeType::Split { .. } => return Err(WorkspaceError::InvalidCaller),
         };
 
         // promote active node to a split node
@@ -177,7 +174,7 @@ impl Workspace {
         let second_id = self.next_node_id;
         self.next_node_id += 1;
 
-        self.nodes[active_index].ty = NodeType::Split {
+        self.get_mut_node(active_id)?.ty = NodeType::Split {
             mode,
             first_id,
             second_id,
@@ -187,7 +184,6 @@ impl Workspace {
         // create children from the splitted surface
         let (first_surface, second_surface) = Self::split_rect(surface, mode);
         let first_child = Node {
-            id: first_id,
             parent_id: Some(active_id),
             ty: NodeType::Buffer {
                 buffer_id,
@@ -198,7 +194,6 @@ impl Workspace {
             },
         };
         let second_child = Node {
-            id: second_id,
             parent_id: Some(active_id),
             ty: NodeType::Buffer {
                 buffer_id,
@@ -210,45 +205,43 @@ impl Workspace {
         };
 
         self.active_id = Some(second_id);
-        self.nodes.push(first_child);
-        self.nodes.push(second_child);
+        self.nodes.insert(first_id, first_child);
+        self.nodes.insert(second_id, second_child);
 
-        Ok(())
+        Ok(WorkspaceEvent::BufferOpened)
     }
 
-    fn quit_active(&mut self) -> Result<(), WorkspaceError> {
-        let active_id = match self.active_id {
-            Some(id) => id,
+    fn quit_active(&mut self) -> Result<WorkspaceEvent, WorkspaceError> {
+        let (active, active_id) = match self.active_id {
+            Some(id) => (self.get_node(id)?.clone(), id),
             None => return Err(WorkspaceError::NullActive),
         };
-        let active_index = self.get_node_index(active_id)?;
 
         // return error if calling from a split node
-        if let NodeType::Split { .. } = &self.nodes[active_index].ty {
+        if let NodeType::Split { .. } = active.ty {
             return Err(WorkspaceError::InvalidCaller);
         };
 
         // remove active from nodes if root
-        let parent_id = match self.nodes[active_index].parent_id {
-            Some(id) => id,
+        let (parent, parent_id) = match active.parent_id {
+            Some(id) => (self.get_node(id)?.clone(), id),
             None => {
-                self.nodes.swap_remove(active_index);
+                self.nodes.remove(&active_id);
                 self.active_id = None;
-                return Ok(());
+                return Ok(WorkspaceEvent::BufferQuit);
             }
         };
-        let parent_index = self.get_node_index(parent_id)?;
 
-        let (area, sibling_id) = match &self.nodes[parent_index].ty {
+        let (area, sibling_id) = match parent.ty {
             NodeType::Split {
                 area,
                 first_id,
                 second_id,
                 ..
             } => {
-                let id = if active_id == *first_id {
+                let id = if active_id == first_id {
                     second_id
-                } else if active_id == *second_id {
+                } else if active_id == second_id {
                     first_id
                 } else {
                     return Err(WorkspaceError::InvalidTree(
@@ -256,7 +249,7 @@ impl Workspace {
                     ));
                 };
 
-                (*area, *id)
+                (area, id)
             }
             NodeType::Buffer { .. } => {
                 return Err(WorkspaceError::InvalidTree(
@@ -264,32 +257,32 @@ impl Workspace {
                 ));
             }
         };
-        let sibling_index = self.get_node_index(sibling_id)?;
 
         // update siblings children's parent_id if any
-        match &self.nodes[sibling_index].ty {
+        let sibling = self.get_node(sibling_id)?.clone();
+        match sibling.ty {
             NodeType::Split {
                 first_id,
                 second_id,
                 ..
             } => {
-                let first_index = self.get_node_index(*first_id)?;
-                let second_index = self.get_node_index(*second_id)?;
-
-                self.nodes[first_index].parent_id = Some(parent_id);
-                self.nodes[second_index].parent_id = Some(parent_id);
+                self.get_mut_node(first_id)?.parent_id = Some(parent_id);
+                self.get_mut_node(second_id)?.parent_id = Some(parent_id);
             }
             NodeType::Buffer { .. } => {}
         }
+
         // promote parent to whatever type sibling is
-        self.nodes[parent_index].ty = self.nodes[sibling_index].ty.clone();
-        self.restore_geometry_recursive(parent_id, area);
+        self.get_mut_node(parent_id)?.ty = sibling.ty;
+        self.restore_geometry_recursive(parent_id, area)?;
 
-        // guard against any reordering of self.nodes
-        self.nodes.swap_remove(self.get_node_index(active_id)?);
-        self.nodes.swap_remove(self.get_node_index(sibling_id)?);
+        // remove now stale nodes
+        self.nodes.remove(&active_id);
+        self.nodes.remove(&sibling_id);
 
-        Ok(())
+        self.set_active_recursive(parent_id)?;
+
+        Ok(WorkspaceEvent::BufferQuit)
     }
 
     fn restore_geometry_recursive(
@@ -297,44 +290,56 @@ impl Workspace {
         id: NodeId,
         free_area: Rect,
     ) -> Result<(), WorkspaceError> {
-        let index = self.get_node_index(id)?;
+        let node = self.get_mut_node(id)?.clone();
 
-        // fecth split contents or directly consume the space if buffer
-        let (mode, first_id, second_id) = match &mut self.nodes[index].ty {
+        match node.ty {
+            // split area and call recursively
             NodeType::Split {
                 mode,
                 first_id,
                 second_id,
-                area: _,
-            } => (*mode, *first_id, *second_id),
-            NodeType::Buffer { surface, .. } => {
-                *surface = free_area;
-                self.active_id = Some(id);
+                ..
+            } => {
+                let (first_area, second_area) = Self::split_rect(free_area, mode);
+                self.restore_geometry_recursive(first_id, first_area)?;
+                self.restore_geometry_recursive(second_id, second_area)?;
+            }
+            // consume directly if it is a buffer node
+            NodeType::Buffer { .. } => {
+                if let NodeType::Buffer { surface, .. } = &mut self.get_mut_node(id)?.ty {
+                    *surface = free_area;
+                }
                 return Ok(());
             }
-        };
-
-        let (first_area, second_area) = Self::split_rect(free_area, mode);
-
-        // call recursively on children
-        self.restore_geometry_recursive(first_id, first_area)?;
-        self.restore_geometry_recursive(second_id, second_area)?;
+        }
 
         Ok(())
     }
 
-    fn get_node_index(&self, id: NodeId) -> Result<usize, WorkspaceError> {
-        self.nodes
-            .iter()
-            .position(|node| node.id == id)
-            .ok_or(WorkspaceError::InvalidNodeId)
-    }
-
-    fn get_buff_index(&self, id: BufferId) -> Result<usize, WorkspaceError> {
-        self.buffers
-            .iter()
-            .position(|node| node.id == id)
-            .ok_or(WorkspaceError::InvalidBufferId)
+    fn set_active_recursive(&mut self, id: NodeId) -> Result<bool, WorkspaceError> {
+        match self.get_node(id)?.ty.clone() {
+            // call recursively
+            NodeType::Split {
+                first_id,
+                second_id,
+                ..
+            } => {
+                if self.set_active_recursive(first_id)? {
+                    Ok(true)
+                } else if self.set_active_recursive(second_id)? {
+                    Ok(true)
+                } else {
+                    Err(WorkspaceError::InvalidTree(
+                        "Split node has no buffer children".to_string(),
+                    ))
+                }
+            }
+            // end at the first buffer
+            NodeType::Buffer { .. } => {
+                self.active_id = Some(id);
+                return Ok(true);
+            }
+        }
     }
 
     fn split_rect(rect: Rect, mode: SplitMode) -> (Rect, Rect) {
@@ -375,6 +380,27 @@ impl Workspace {
                     },
                 )
             }
+        }
+    }
+
+    fn get_node(&self, id: NodeId) -> Result<&Node, WorkspaceError> {
+        match self.nodes.get(&id) {
+            Some(node) => Ok(node),
+            None => return Err(WorkspaceError::InvalidNodeId),
+        }
+    }
+
+    fn get_mut_node(&mut self, id: NodeId) -> Result<&mut Node, WorkspaceError> {
+        match self.nodes.get_mut(&id) {
+            Some(node) => Ok(node),
+            None => return Err(WorkspaceError::InvalidNodeId),
+        }
+    }
+
+    fn get_mut_buffer(&mut self, id: BufferId) -> Result<&mut Buffer, WorkspaceError> {
+        match self.buffers.get_mut(&id) {
+            Some(buffer) => Ok(buffer),
+            None => return Err(WorkspaceError::InvalidBufferId),
         }
     }
 }
