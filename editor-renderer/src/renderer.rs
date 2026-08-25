@@ -3,7 +3,10 @@ use crate::{
     text::{TextRenderer, TextRendererError},
     types::Quad,
 };
-use editor_common::Viewport;
+use editor_common::{
+    geometry::Viewport,
+    rendering::{RenderCommand, RenderFrame},
+};
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
@@ -17,14 +20,14 @@ pub enum RendererError {
     TextRendererCreation(#[from] TextRendererError),
 }
 
-pub struct Renderer {
+pub struct Renderer<'a> {
     state: RendererState,
-    text: TextRenderer,
+    text: TextRenderer<'a>,
 
     pipeline: wgpu::RenderPipeline,
 }
 
-impl Renderer {
+impl Renderer<'_> {
     pub fn new<T: wgpu::DisplayAndWindowHandle + 'static>(
         window: Arc<T>,
         viewport: Viewport,
@@ -49,7 +52,8 @@ impl Renderer {
                     0 => Float32x2, // pos
                     1 => Float32x2, // size
                     2 => Float32x4, // color
-                    3 => Float32x4, // uvs
+                    3 => Float32x2, // min uvs
+                    4 => Float32x2, // max uvs
                 ],
             })],
         };
@@ -109,7 +113,37 @@ impl Renderer {
             .configure(&self.state.device, &self.state.config);
     }
 
-    pub fn render(&self, quads: &[Quad]) {
+    pub fn render(&mut self, frame: RenderFrame) {
+        let quads: Vec<Quad> = frame
+            .cmds
+            .iter()
+            .filter_map(|cmd| match cmd {
+                RenderCommand::Text {
+                    surface,
+                    text,
+                    color,
+                } => self
+                    .text
+                    .render_text(
+                        *surface,
+                        text,
+                        *color,
+                        Viewport {
+                            width: self.state.config.width,
+                            height: self.state.config.height,
+                        },
+                    )
+                    .ok(),
+
+                RenderCommand::Quad { .. } => None,
+            })
+            .flatten()
+            .collect();
+
+        self.draw(&quads);
+    }
+
+    fn draw(&self, quads: &[Quad]) {
         let status = self.state.surface.get_current_texture();
 
         match status {
@@ -157,8 +191,8 @@ impl Renderer {
                 render_pass.draw(0..4, 0..quads.len() as u32);
 
                 drop(render_pass);
-
                 let command = encoder.finish();
+
                 self.text.write_texture(&self.state.queue);
                 self.state.queue.submit([command]);
                 self.state.queue.present(texture);

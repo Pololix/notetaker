@@ -1,6 +1,6 @@
-use editor_common::Viewport;
+use editor_common::geometry::Viewport;
 use editor_core::{
-    editor::{Editor, EditorError},
+    editor::Editor,
     event::input_event::{InputEvent, Key, KeyState, Modifiers},
 };
 use editor_renderer::Renderer;
@@ -15,16 +15,15 @@ use winit::{
 
 type WinitKey = winit::keyboard::Key;
 
-#[derive(Default)]
-pub struct App {
+pub struct App<'a> {
     window_id: Option<WindowId>,
-    renderer: Option<Renderer>,
+    renderer: Option<Renderer<'a>>,
     editor: Editor,
 
     current_mods: Modifiers,
 }
 
-impl ApplicationHandler for App {
+impl ApplicationHandler for App<'_> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let window = event_loop
             .create_window(Window::default_attributes())
@@ -58,6 +57,7 @@ impl ApplicationHandler for App {
             // exceptions (left out of the cmd/event system)
             WindowEvent::CloseRequested => {
                 event_loop.exit();
+
                 return;
             }
             WindowEvent::RedrawRequested => {
@@ -65,9 +65,13 @@ impl ApplicationHandler for App {
                     Some(renderer) => renderer,
                     None => return,
                 };
-                let editor_view = self.editor.get_view();
 
-                todo!();
+                match self.editor.render() {
+                    Ok(frame) => renderer.render(frame),
+                    Err(_) => return,
+                }
+
+                return;
             }
             WindowEvent::Resized(size) => {
                 let renderer = match &mut self.renderer {
@@ -81,6 +85,7 @@ impl ApplicationHandler for App {
                 };
                 renderer.set_viewport(viewport);
                 self.editor.set_viewport(viewport);
+
                 return;
             }
             WindowEvent::ModifiersChanged(mods) => {
@@ -150,6 +155,18 @@ impl ApplicationHandler for App {
         // keep the loop running
         if let Some(id) = &self.window_id {
             self.window_event(&event_loop, *id, WindowEvent::RedrawRequested);
+        }
+    }
+}
+
+impl App<'_> {
+    pub fn new() -> Self {
+        Self {
+            window_id: None,
+            renderer: None,
+            editor: Editor::new().expect("Failed to create an editor"),
+
+            current_mods: Modifiers::default(),
         }
     }
 }

@@ -1,4 +1,4 @@
-use editor_common::Viewport;
+use editor_common::geometry::Viewport;
 use std::sync::Arc;
 
 #[non_exhaustive]

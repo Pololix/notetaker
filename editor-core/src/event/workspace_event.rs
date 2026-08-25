@@ -1,5 +1,5 @@
 use crate::workspace::SplitMode;
-use editor_common::Viewport;
+use editor_common::geometry::Viewport;
 
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy)]

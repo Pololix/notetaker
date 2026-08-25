@@ -10,7 +10,6 @@ pub type BufferId = usize;
 pub struct Buffer {
     // path: Option<PathBuf>,
     contents: Rope,
-    cursor: usize,
     // flags: BufferFlags,
 }
 
@@ -18,12 +17,11 @@ impl Buffer {
     pub fn new() -> Self {
         Self {
             contents: Rope::new(),
-            cursor: 0,
         }
     }
 
     pub fn get_text(&self) -> String {
-        self.contents.to_string()
+        "Default text".to_string()
     }
 
     // quit

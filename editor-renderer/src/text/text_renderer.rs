@@ -1,8 +1,11 @@
 use crate::{
     text::glyph_atlas::{GlyphAtlas, GlyphAtlasError},
-    types::{Color, Quad},
+    types::Quad,
 };
-use editor_common::Rect;
+use editor_common::{
+    color::Color,
+    geometry::{Point, Rect, Viewport},
+};
 
 // placeholders (fetch from config or automatically from user)
 const LOCALE: &str = "en-US";
@@ -124,14 +127,19 @@ impl TextRenderer<'_> {
         })
     }
 
-    pub fn draw_text(
+    pub fn render_text(
         &mut self,
+        surface: Rect,
         text: &str,
-        rect: Rect,
         color: Color,
+        viewport: Viewport,
     ) -> Result<Vec<Quad>, TextRendererError> {
+        let mut quads = Vec::new();
+
+        // config buffer
         let mut buffer = self.buffer.borrow_with(&mut self.font_system);
-        buffer.set_size(Some(rect.width), Some(rect.height));
+        buffer.set_wrap(cosmic_text::Wrap::None);
+        buffer.set_size(Some(surface.width), Some(surface.height));
         buffer.set_text(
             text,
             &self.attrs,
@@ -139,8 +147,7 @@ impl TextRenderer<'_> {
             Some(cosmic_text::Align::Left),
         );
 
-        let mut quads = Vec::new();
-        // collect glyphs from each line as PhysicalGlyph to avoid borrowing issues
+        // collect glyphs from each line as PhysicalGlyph
         let glyphs: Vec<cosmic_text::PhysicalGlyph> = buffer
             .layout_runs()
             .flat_map(|line| {
@@ -150,7 +157,7 @@ impl TextRenderer<'_> {
                     .collect::<Vec<_>>()
             })
             .collect();
-        // turn physical glyphs into actual quads
+
         for glyph in glyphs {
             // add bitmap to the atlas if not in already
             let image = match self.cache.get_image(&mut self.font_system, glyph.cache_key) {
@@ -159,14 +166,19 @@ impl TextRenderer<'_> {
             };
             let uv_coords = self.atlas.add(&image, glyph.cache_key)?;
 
-            quads.push(Quad {
-                x: rect.x + glyph.x as f32 + image.placement.left as f32,
-                y: rect.y + glyph.y as f32 + image.placement.top as f32,
-                width: image.placement.width as f32,
-                height: image.placement.height as f32,
+            quads.push(Quad::new(
+                Rect {
+                    coords: Point {
+                        x: surface.coords.x + glyph.x as f32 + image.placement.left as f32,
+                        y: surface.coords.y + glyph.y as f32 + image.placement.top as f32,
+                    },
+                    width: image.placement.width as f32,
+                    height: image.placement.height as f32,
+                },
+                viewport,
                 color,
                 uv_coords,
-            });
+            ));
         }
 
         Ok(quads)

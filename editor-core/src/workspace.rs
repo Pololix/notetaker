@@ -2,7 +2,11 @@ use crate::{
     buffer::{Buffer, BufferId},
     event::workspace_event::{WorkspaceCommand, WorkspaceEvent},
 };
-use editor_common::{Rect, Viewport};
+use editor_common::{
+    color::Color,
+    geometry::{Point, Rect, Viewport},
+    rendering::RenderCommand,
+};
 use std::collections::HashMap;
 
 type NodeId = usize;
@@ -54,8 +58,8 @@ enum NodeType {
         buffer_id: BufferId,
         surface: Rect,
         cursor: usize,
-        v_scroll: f32,
-        h_scroll: f32,
+        v_scroll: u32,
+        h_scroll: u32,
     },
 }
 
@@ -93,14 +97,44 @@ impl Workspace {
         self.restore_geometry_recursive(
             root_id,
             Rect {
-                x: 0.0,
-                y: 0.0,
+                coords: Point { x: 0.0, y: 0.0 },
                 width: viewport.width as f32,
                 height: viewport.height as f32,
             },
         )?;
 
         Ok(())
+    }
+
+    pub fn render(&self) -> Vec<RenderCommand> {
+        self.nodes
+            .values()
+            .filter_map(|node| match node.ty {
+                NodeType::Buffer {
+                    buffer_id,
+                    surface,
+                    cursor,
+                    v_scroll,
+                    h_scroll,
+                } => {
+                    let text = self.get_buffer(buffer_id).ok()?.get_text();
+                    let color = Color {
+                        r: 1.0,
+                        g: 1.0,
+                        b: 1.0,
+                        a: 1.0,
+                    };
+
+                    Some(RenderCommand::Text {
+                        surface,
+                        text,
+                        color,
+                    })
+                }
+
+                NodeType::Split { .. } => None,
+            })
+            .collect()
     }
 
     pub fn handle_command(
@@ -133,14 +167,13 @@ impl Workspace {
             ty: NodeType::Buffer {
                 buffer_id,
                 surface: Rect {
-                    x: 0.0,
-                    y: 0.0,
+                    coords: Point { x: 0.0, y: 0.0 },
                     width: viewport.width as f32,
                     height: viewport.height as f32,
                 },
                 cursor: 0,
-                v_scroll: 0.0,
-                h_scroll: 0.0,
+                v_scroll: 0,
+                h_scroll: 0,
             },
         };
         self.active_id = Some(node_id);
@@ -348,15 +381,19 @@ impl Workspace {
                 (
                     // left rect
                     Rect {
-                        x: rect.x,
-                        y: rect.y,
+                        coords: Point {
+                            x: rect.coords.x,
+                            y: rect.coords.y,
+                        },
                         width: rect.width * 0.5,
                         height: rect.height,
                     },
                     // right rect (offset in x axis)
                     Rect {
-                        x: rect.x + rect.width * 0.5,
-                        y: rect.y,
+                        coords: Point {
+                            x: rect.coords.x + rect.width * 0.5,
+                            y: rect.coords.y,
+                        },
                         width: rect.width * 0.5,
                         height: rect.height,
                     },
@@ -366,15 +403,19 @@ impl Workspace {
                 (
                     // top rect
                     Rect {
-                        x: rect.x,
-                        y: rect.y,
+                        coords: Point {
+                            x: rect.coords.x,
+                            y: rect.coords.y,
+                        },
                         width: rect.width,
                         height: rect.height * 0.5,
                     },
                     // bottom rect (offset in y axis)
                     Rect {
-                        x: rect.x,
-                        y: rect.y + rect.height * 0.5,
+                        coords: Point {
+                            x: rect.coords.x,
+                            y: rect.coords.y + rect.height * 0.5,
+                        },
                         width: rect.width,
                         height: rect.height * 0.5,
                     },
@@ -394,6 +435,13 @@ impl Workspace {
         match self.nodes.get_mut(&id) {
             Some(node) => Ok(node),
             None => return Err(WorkspaceError::InvalidNodeId),
+        }
+    }
+
+    fn get_buffer(&self, id: BufferId) -> Result<&Buffer, WorkspaceError> {
+        match self.buffers.get(&id) {
+            Some(buffer) => Ok(buffer),
+            None => return Err(WorkspaceError::InvalidBufferId),
         }
     }
 

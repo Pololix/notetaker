@@ -6,7 +6,7 @@ use crate::{
     },
     workspace::{SplitMode, Workspace, WorkspaceError, WorkspaceId},
 };
-use editor_common::Viewport;
+use editor_common::{geometry::Viewport, rendering::RenderFrame};
 use std::collections::HashMap;
 
 #[non_exhaustive]
@@ -71,51 +71,29 @@ impl Editor {
         Ok(())
     }
 
+    pub fn render(&self) -> Result<RenderFrame, EditorError> {
+        let active = self.get_workspace(self.active_id)?;
+        let cmds = active.render();
+
+        Ok(RenderFrame { cmds })
+    }
+
     pub fn handle_input_event(&mut self, input_event: InputEvent) -> Result<(), EditorError> {
         // route events to be handled based on the current mode
-        if let Some(cmd) = match self.mode {
-            UserMode::Normal => self.normal_input_event(input_event),
-            UserMode::Insert => self.insert_input_event(input_event),
-        } {
-            self.handle_command(cmd)?;
+        let cmd = match self.mode {
+            UserMode::Normal => match input_event {
+                _ => None,
+            },
+            UserMode::Insert => match input_event {
+                _ => None,
+            },
+        };
+
+        if let Some(cmd) = cmd {
+            self.handle_command(cmd)?
         }
 
         Ok(())
-    }
-
-    fn normal_input_event(&self, event: InputEvent) -> Option<EditorCommand> {
-        match event {
-            InputEvent::Key { key, state, .. } => {
-                if state != KeyState::Pressed {
-                    return None;
-                }
-
-                match key {
-                    Key::Character(key) => match key.as_str() {
-                        "n" => Some(EditorCommand::Workspace(WorkspaceCommand::OpenBuffer {
-                            viewport: self.viewport,
-                        })),
-                        "d" => Some(EditorCommand::Workspace(WorkspaceCommand::QuitBuffer)),
-                        "v" => Some(EditorCommand::Workspace(WorkspaceCommand::SplitBuffer {
-                            mode: SplitMode::Vertical,
-                        })),
-                        "h" => Some(EditorCommand::Workspace(WorkspaceCommand::SplitBuffer {
-                            mode: SplitMode::Horizontal,
-                        })),
-                        _ => None,
-                    },
-
-                    _ => None,
-                }
-            }
-            _ => None,
-        }
-    }
-
-    fn insert_input_event(&self, event: InputEvent) -> Option<EditorCommand> {
-        match event {
-            _ => None,
-        }
     }
 
     fn handle_command(&mut self, cmd: EditorCommand) -> Result<(), EditorError> {
@@ -164,6 +142,13 @@ impl Editor {
         }
 
         // EditorEvent::WorkspaceDeleted
+    }
+
+    fn get_workspace(&self, id: WorkspaceId) -> Result<&Workspace, EditorError> {
+        match self.workspaces.get(&id) {
+            Some(workspace) => Ok(workspace),
+            None => return Err(EditorError::NullActive),
+        }
     }
 
     fn get_mut_workspace(&mut self, id: WorkspaceId) -> Result<&mut Workspace, EditorError> {
