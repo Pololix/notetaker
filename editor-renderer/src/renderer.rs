@@ -114,31 +114,29 @@ impl Renderer<'_> {
     }
 
     pub fn render(&mut self, frame: RenderFrame) {
-        let quads: Vec<Quad> = frame
-            .cmds
-            .iter()
-            .filter_map(|cmd| match cmd {
+        let viewport = Viewport {
+            width: self.state.config.width,
+            height: self.state.config.height,
+        };
+
+        let mut quads = Vec::new();
+        for cmd in &frame.cmds {
+            match cmd {
+                RenderCommand::Quad { surface, color } => {
+                    let uvs = self.text.plain_uvs;
+                    quads.push(Quad::new(*surface, viewport, *color, uvs));
+                }
                 RenderCommand::Text {
                     surface,
                     text,
                     color,
-                } => self
-                    .text
-                    .render_text(
-                        *surface,
-                        text,
-                        *color,
-                        Viewport {
-                            width: self.state.config.width,
-                            height: self.state.config.height,
-                        },
-                    )
-                    .ok(),
-
-                RenderCommand::Quad { .. } => None,
-            })
-            .flatten()
-            .collect();
+                } => {
+                    if let Ok(mut text) = self.text.render_text(*surface, text, *color, viewport) {
+                        quads.append(&mut text);
+                    }
+                }
+            }
+        }
 
         self.draw(&quads);
     }

@@ -1,6 +1,8 @@
 use crate::types::UvCoords;
 use std::collections::HashMap;
 
+const PLAIN_REGION_SIZE: u32 = 3;
+
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]
 pub enum GlyphAtlasError {
@@ -26,7 +28,7 @@ pub struct GlyphAtlas {
 
 impl GlyphAtlas {
     pub fn new(width: u32, height: u32) -> Self {
-        Self {
+        let mut new_self = Self {
             width,
             height,
             next_x: 0,
@@ -35,7 +37,16 @@ impl GlyphAtlas {
 
             contents: vec![0; (width * height) as usize],
             cache: HashMap::new(),
+        };
+
+        // write plain uvs
+        for y in 0..PLAIN_REGION_SIZE {
+            for x in 0..PLAIN_REGION_SIZE {
+                new_self.contents[(y * new_self.width + x) as usize] = 255;
+            }
         }
+        new_self.next_x += PLAIN_REGION_SIZE;
+        new_self
     }
 
     pub fn add(
@@ -88,5 +99,14 @@ impl GlyphAtlas {
         self.next_x += image.placement.width;
 
         Ok(uvs)
+    }
+
+    pub fn get_plain_uvs(&self) -> UvCoords {
+        UvCoords {
+            min_u: 0.0,
+            min_v: 0.0,
+            max_u: PLAIN_REGION_SIZE as f32 / self.width as f32,
+            max_v: PLAIN_REGION_SIZE as f32 / self.height as f32,
+        }
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     text::glyph_atlas::{GlyphAtlas, GlyphAtlasError},
-    types::Quad,
+    types::{Quad, UvCoords},
 };
 use editor_common::{
     color::Color,
@@ -34,6 +34,8 @@ pub struct TextRenderer<'a> {
     atlas_texture: wgpu::Texture,
     pub bind_group: wgpu::BindGroup,
     pub bind_layout: wgpu::BindGroupLayout,
+
+    pub plain_uvs: UvCoords, // update if the atlas ever resizes
 }
 
 impl TextRenderer<'_> {
@@ -47,6 +49,7 @@ impl TextRenderer<'_> {
         // let cache = cosmic_text::SwashCache::new();
 
         let atlas = GlyphAtlas::new(1024, 1024);
+        let plain_uvs = atlas.get_plain_uvs();
         let cache = cosmic_text::SwashCache::new();
         let attrs = cosmic_text::Attrs::new();
         let metrics = cosmic_text::Metrics::relative(FONT_SIZE, 1.2);
@@ -124,6 +127,8 @@ impl TextRenderer<'_> {
             atlas_texture,
             bind_group,
             bind_layout,
+
+            plain_uvs,
         })
     }
 

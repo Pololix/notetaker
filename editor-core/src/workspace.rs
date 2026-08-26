@@ -118,22 +118,33 @@ impl Workspace {
                     h_scroll,
                 } => {
                     let text = self.get_buffer(buffer_id).ok()?.get_text();
-                    let color = Color {
-                        r: 1.0,
-                        g: 1.0,
-                        b: 1.0,
-                        a: 1.0,
-                    };
 
-                    Some(RenderCommand::Text {
-                        surface,
-                        text,
-                        color,
-                    })
+                    Some([
+                        RenderCommand::Quad {
+                            surface,
+                            color: Color {
+                                r: 0.05,
+                                g: 0.05,
+                                b: 0.05,
+                                a: 1.0,
+                            },
+                        },
+                        RenderCommand::Text {
+                            surface,
+                            text,
+                            color: Color {
+                                r: 1.0,
+                                g: 1.0,
+                                b: 1.0,
+                                a: 1.0,
+                            },
+                        },
+                    ])
                 }
 
                 NodeType::Split { .. } => None,
             })
+            .flatten()
             .collect()
     }
 
