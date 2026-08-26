@@ -1,7 +1,10 @@
 use crate::{
     event::{
         editor_event::EditorCommand,
-        input_event::{InputEvent, Key, KeyState},
+        input_event::{
+            InputEvent, Key,
+            KeyState::{self, Released},
+        },
         workspace_event::WorkspaceCommand,
     },
     workspace::{SplitMode, Workspace, WorkspaceError, WorkspaceId},
@@ -44,11 +47,11 @@ pub struct Editor {
 
 impl Editor {
     pub fn new() -> Result<Self, EditorError> {
-        // create null-dimension viewport and resize on window creation/resize
+        // create arbitrary-dimensioned viewport and resize on window creation/resize
         let mut new_self = Self {
             viewport: Viewport {
-                width: 0,
-                height: 0,
+                width: 1000,
+                height: 1000,
             },
             mode: UserMode::Normal,
 
@@ -78,15 +81,11 @@ impl Editor {
         Ok(RenderFrame { cmds })
     }
 
-    pub fn handle_input_event(&mut self, input_event: InputEvent) -> Result<(), EditorError> {
+    pub fn handle_input_event(&mut self, event: InputEvent) -> Result<(), EditorError> {
         // route events to be handled based on the current mode
         let cmd = match self.mode {
-            UserMode::Normal => match input_event {
-                _ => None,
-            },
-            UserMode::Insert => match input_event {
-                _ => None,
-            },
+            UserMode::Normal => self.normal_event(event),
+            UserMode::Insert => None,
         };
 
         if let Some(cmd) = cmd {
@@ -94,6 +93,36 @@ impl Editor {
         }
 
         Ok(())
+    }
+
+    fn normal_event(&self, event: InputEvent) -> Option<EditorCommand> {
+        match event {
+            InputEvent::Key { key, state, .. } => {
+                if state == KeyState::Released {
+                    return None; // discard released events
+                }
+
+                match key {
+                    Key::Character(c) => {
+                        match c.as_str() {
+                            "n" => Some(EditorCommand::Workspace(WorkspaceCommand::OpenBuffer {
+                                viewport: self.viewport,
+                            })),
+                            "v" => Some(EditorCommand::Workspace(WorkspaceCommand::SplitBuffer {
+                                mode: SplitMode::Vertical,
+                            })),
+                            "h" => Some(EditorCommand::Workspace(WorkspaceCommand::SplitBuffer {
+                                mode: SplitMode::Horizontal,
+                            })),
+                            "q" => Some(EditorCommand::Workspace(WorkspaceCommand::QuitBuffer)),
+                            _ => None, // for unused chars
+                        }
+                    }
+                    _ => None, // for unused key events
+                }
+            }
+            _ => None, // for unused input events
+        }
     }
 
     fn handle_command(&mut self, cmd: EditorCommand) -> Result<(), EditorError> {

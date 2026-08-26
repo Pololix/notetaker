@@ -21,7 +21,7 @@ impl Buffer {
     }
 
     pub fn get_text(&self) -> String {
-        "Default text".to_string()
+        "Default text............................................................................................................................".to_string()
     }
 
     // quit

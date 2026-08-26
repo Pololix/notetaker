@@ -9,6 +9,11 @@ use editor_common::{
 };
 use std::collections::HashMap;
 
+// placeholder configs
+const MARGIN: u32 = 20; // from edge to buffer background
+const PADDING: u32 = 10; // between views
+const TEXT_MARGIN: u32 = 10; // from buffer background edge to text
+
 type NodeId = usize;
 pub type WorkspaceId = usize;
 
@@ -49,14 +54,14 @@ struct Node {
 #[derive(Debug, Clone)]
 enum NodeType {
     Split {
-        area: Rect,
+        area: Rect, // purely logical, ignores spacing
         mode: SplitMode,
         first_id: NodeId,
         second_id: NodeId,
     },
     Buffer {
         buffer_id: BufferId,
-        surface: Rect,
+        surface: Rect, // visual, respects spacing
         cursor: usize,
         v_scroll: u32,
         h_scroll: u32,
@@ -97,9 +102,12 @@ impl Workspace {
         self.restore_geometry_recursive(
             root_id,
             Rect {
-                coords: Point { x: 0.0, y: 0.0 },
-                width: viewport.width as f32,
-                height: viewport.height as f32,
+                coords: Point {
+                    x: MARGIN as f32,
+                    y: MARGIN as f32,
+                },
+                width: (viewport.width - MARGIN * 2) as f32,
+                height: (viewport.height - MARGIN * 2) as f32,
             },
         )?;
 
@@ -120,6 +128,7 @@ impl Workspace {
                     let text = self.get_buffer(buffer_id).ok()?.get_text();
 
                     Some([
+                        // render first background
                         RenderCommand::Quad {
                             surface,
                             color: Color {
@@ -129,8 +138,16 @@ impl Workspace {
                                 a: 1.0,
                             },
                         },
+                        // and then foreground
                         RenderCommand::Text {
-                            surface,
+                            surface: Rect {
+                                coords: Point {
+                                    x: surface.coords.x + TEXT_MARGIN as f32,
+                                    y: surface.coords.y + TEXT_MARGIN as f32,
+                                },
+                                width: surface.width - (TEXT_MARGIN * 2) as f32,
+                                height: surface.height - (TEXT_MARGIN * 2) as f32,
+                            },
                             text,
                             color: Color {
                                 r: 1.0,
@@ -178,9 +195,12 @@ impl Workspace {
             ty: NodeType::Buffer {
                 buffer_id,
                 surface: Rect {
-                    coords: Point { x: 0.0, y: 0.0 },
-                    width: viewport.width as f32,
-                    height: viewport.height as f32,
+                    coords: Point {
+                        x: MARGIN as f32,
+                        y: MARGIN as f32,
+                    },
+                    width: (viewport.width - MARGIN * 2) as f32,
+                    height: (viewport.height - MARGIN * 2) as f32,
                 },
                 cursor: 0,
                 v_scroll: 0,
@@ -396,16 +416,16 @@ impl Workspace {
                             x: rect.coords.x,
                             y: rect.coords.y,
                         },
-                        width: rect.width * 0.5,
+                        width: (rect.width - PADDING as f32) * 0.5,
                         height: rect.height,
                     },
                     // right rect (offset in x axis)
                     Rect {
                         coords: Point {
-                            x: rect.coords.x + rect.width * 0.5,
+                            x: rect.coords.x + (rect.width + PADDING as f32) * 0.5,
                             y: rect.coords.y,
                         },
-                        width: rect.width * 0.5,
+                        width: (rect.width - PADDING as f32) * 0.5,
                         height: rect.height,
                     },
                 )
@@ -419,16 +439,16 @@ impl Workspace {
                             y: rect.coords.y,
                         },
                         width: rect.width,
-                        height: rect.height * 0.5,
+                        height: (rect.height - PADDING as f32) * 0.5,
                     },
                     // bottom rect (offset in y axis)
                     Rect {
                         coords: Point {
                             x: rect.coords.x,
-                            y: rect.coords.y + rect.height * 0.5,
+                            y: rect.coords.y + (rect.height + PADDING as f32) * 0.5,
                         },
                         width: rect.width,
-                        height: rect.height * 0.5,
+                        height: (rect.height - PADDING as f32) * 0.5,
                     },
                 )
             }

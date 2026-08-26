@@ -19,7 +19,6 @@
 - Implement movement between buffer views
 
 # Rendering pipeline:
-- Figure out the bridge between core and renderer through app
 - Avoid redrawing every frame (redraw only when state changes)
 
 # Text rendering: 

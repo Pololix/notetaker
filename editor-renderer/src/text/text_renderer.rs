@@ -190,6 +190,7 @@ impl TextRenderer<'_> {
 
         Ok(quads)
     }
+
     pub fn write_texture(&self, queue: &wgpu::Queue) {
         queue.write_texture(
             wgpu::TexelCopyTextureInfo {
