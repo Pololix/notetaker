@@ -16,7 +16,6 @@
 - Add tree validation before mutating
 - Allow for dynamic buffer resizing (specially for cursor users)
 - Introduce buffer operations (insert, delete, etc)
-- Implement movement between buffer views
 
 # Rendering pipeline:
 - Avoid redrawing every frame (redraw only when state changes)

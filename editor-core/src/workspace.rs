@@ -39,10 +39,18 @@ pub enum WorkspaceError {
     InvalidTree(String),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SplitMode {
     Vertical,
     Horizontal,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum MoveDirection {
+    Up,
+    Down,
+    Left,
+    Right,
 }
 
 #[derive(Debug, Clone)]
@@ -116,8 +124,8 @@ impl Workspace {
 
     pub fn render(&self) -> Vec<RenderCommand> {
         self.nodes
-            .values()
-            .filter_map(|node| match node.ty {
+            .iter()
+            .filter_map(|(id, node)| match node.ty {
                 NodeType::Buffer {
                     buffer_id,
                     surface,
@@ -126,13 +134,14 @@ impl Workspace {
                     h_scroll,
                 } => {
                     let text = self.get_buffer(buffer_id).ok()?.get_text();
+                    let active = self.active_id.unwrap() == *id;
 
                     Some([
                         // render first background
                         RenderCommand::Quad {
                             surface,
                             color: Color {
-                                r: 0.05,
+                                r: if active { 0.3 } else { 0.05 }, // debug purposes
                                 g: 0.05,
                                 b: 0.05,
                                 a: 1.0,
@@ -176,6 +185,7 @@ impl Workspace {
             },
             WorkspaceCommand::SplitBuffer { mode } => Some(self.split_active(mode)?),
             WorkspaceCommand::QuitBuffer => Some(self.quit_active()?),
+            WorkspaceCommand::MoveActive { direction } => self.change_active(direction)?,
             _ => None,
         };
 
@@ -404,6 +414,81 @@ impl Workspace {
                 return Ok(true);
             }
         }
+    }
+
+    fn change_active(
+        &mut self,
+        direction: MoveDirection,
+    ) -> Result<Option<WorkspaceEvent>, WorkspaceError> {
+        let active_id = self.active_id.ok_or(WorkspaceError::NullActive)?;
+        let active_node = self.get_node(active_id)?;
+
+        let active_surface = match active_node.ty {
+            NodeType::Buffer { surface, .. } => surface,
+            NodeType::Split { .. } => return Err(WorkspaceError::InvalidCaller),
+        };
+
+        let active_left = active_surface.coords.x;
+        let active_right = active_left + active_surface.width;
+        let active_top = active_surface.coords.y;
+        let active_bottom = active_top + active_surface.height;
+
+        let mut best: Option<(NodeId, f32)> = None;
+
+        for (&id, node) in &self.nodes {
+            if id == active_id {
+                continue;
+            }
+
+            let surface = match node.ty {
+                NodeType::Buffer { surface, .. } => surface,
+                NodeType::Split { .. } => continue,
+            };
+
+            let left = surface.coords.x;
+            let right = left + surface.width;
+            let top = surface.coords.y;
+            let bottom = top + surface.height;
+
+            let (in_direction, distance, overlap) = match direction {
+                MoveDirection::Right => {
+                    let overlap = active_top.max(top) < active_bottom.min(bottom);
+                    (left >= active_right, left - active_right, overlap)
+                }
+
+                MoveDirection::Left => {
+                    let overlap = active_top.max(top) < active_bottom.min(bottom);
+                    (right <= active_left, active_left - right, overlap)
+                }
+
+                MoveDirection::Down => {
+                    let overlap = active_left.max(left) < active_right.min(right);
+                    (top >= active_bottom, top - active_bottom, overlap)
+                }
+
+                MoveDirection::Up => {
+                    let overlap = active_left.max(left) < active_right.min(right);
+                    (bottom <= active_top, active_top - bottom, overlap)
+                }
+            };
+
+            if !in_direction || !overlap {
+                continue;
+            }
+
+            match best {
+                Some((_, best_distance)) if distance >= best_distance => {}
+                _ => {
+                    best = Some((id, distance));
+                }
+            }
+        }
+
+        if let Some((next_id, _)) = best {
+            self.active_id = Some(next_id);
+        }
+
+        Ok(Some(WorkspaceEvent::ActiveChanged))
     }
 
     fn split_rect(rect: Rect, mode: SplitMode) -> (Rect, Rect) {

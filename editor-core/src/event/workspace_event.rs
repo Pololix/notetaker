@@ -1,4 +1,4 @@
-use crate::workspace::SplitMode;
+use crate::workspace::{MoveDirection, SplitMode};
 use editor_common::geometry::Viewport;
 
 #[non_exhaustive]
@@ -7,6 +7,8 @@ pub enum WorkspaceCommand {
     OpenBuffer { viewport: Viewport },
     SplitBuffer { mode: SplitMode },
     QuitBuffer,
+
+    MoveActive { direction: MoveDirection },
 }
 
 #[non_exhaustive]
@@ -14,4 +16,6 @@ pub enum WorkspaceCommand {
 pub enum WorkspaceEvent {
     BufferOpened,
     BufferQuit,
+
+    ActiveChanged,
 }

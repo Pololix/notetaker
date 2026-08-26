@@ -7,7 +7,7 @@ use crate::{
         },
         workspace_event::WorkspaceCommand,
     },
-    workspace::{SplitMode, Workspace, WorkspaceError, WorkspaceId},
+    workspace::{MoveDirection, SplitMode, Workspace, WorkspaceError, WorkspaceId},
 };
 use editor_common::{geometry::Viewport, rendering::RenderFrame};
 use std::collections::HashMap;
@@ -111,10 +111,23 @@ impl Editor {
                             "v" => Some(EditorCommand::Workspace(WorkspaceCommand::SplitBuffer {
                                 mode: SplitMode::Vertical,
                             })),
-                            "h" => Some(EditorCommand::Workspace(WorkspaceCommand::SplitBuffer {
+                            "s" => Some(EditorCommand::Workspace(WorkspaceCommand::SplitBuffer {
                                 mode: SplitMode::Horizontal,
                             })),
                             "q" => Some(EditorCommand::Workspace(WorkspaceCommand::QuitBuffer)),
+                            // movement
+                            "h" => Some(EditorCommand::Workspace(WorkspaceCommand::MoveActive {
+                                direction: MoveDirection::Left,
+                            })),
+                            "j" => Some(EditorCommand::Workspace(WorkspaceCommand::MoveActive {
+                                direction: MoveDirection::Down,
+                            })),
+                            "k" => Some(EditorCommand::Workspace(WorkspaceCommand::MoveActive {
+                                direction: MoveDirection::Up,
+                            })),
+                            "l" => Some(EditorCommand::Workspace(WorkspaceCommand::MoveActive {
+                                direction: MoveDirection::Right,
+                            })),
                             _ => None, // for unused chars
                         }
                     }
