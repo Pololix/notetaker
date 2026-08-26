@@ -153,7 +153,9 @@ impl TextRenderer<'_> {
             .flat_map(|line| {
                 line.glyphs
                     .iter()
-                    .map(|glyph| glyph.physical((0.0, 0.0), 1.0))
+                    .map(|glyph| {
+                        glyph.physical((surface.coords.x, surface.coords.y + line.line_y), 1.0)
+                    })
                     .collect::<Vec<_>>()
             })
             .collect();
@@ -169,8 +171,8 @@ impl TextRenderer<'_> {
             quads.push(Quad::new(
                 Rect {
                     coords: Point {
-                        x: surface.coords.x + glyph.x as f32 + image.placement.left as f32,
-                        y: surface.coords.y + glyph.y as f32 + image.placement.top as f32,
+                        x: glyph.x as f32 + image.placement.left as f32,
+                        y: glyph.y as f32 - image.placement.top as f32,
                     },
                     width: image.placement.width as f32,
                     height: image.placement.height as f32,
