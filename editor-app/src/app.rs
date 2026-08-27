@@ -1,4 +1,4 @@
-use editor_common::geometry::Viewport;
+use editor_common::{event_bus::EventBus, geometry::Viewport};
 use editor_core::{
     editor::Editor,
     event::input_event::{InputEvent, Key, KeyState, Modifiers},
@@ -16,6 +16,7 @@ use winit::{
 type WinitKey = winit::keyboard::Key;
 
 pub struct App<'a> {
+    event_bus: EventBus,
     window_id: Option<WindowId>,
     renderer: Option<Renderer<'a>>,
     editor: Editor,
@@ -147,21 +148,19 @@ impl ApplicationHandler for App<'_> {
             // mouse/touch input
             _ => return, // for unsued window events
         };
-
-        self.editor.handle_input_event(input_event);
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         // keep the loop running
-        if let Some(id) = &self.window_id {
-            self.window_event(&event_loop, *id, WindowEvent::RedrawRequested);
-        }
+        self.event_bus.flush_queue();
     }
 }
 
 impl App<'_> {
     pub fn new() -> Self {
         Self {
+            event_bus: EventBus::new(),
+
             window_id: None,
             renderer: None,
             editor: Editor::new().expect("Failed to create an editor"),
