@@ -1,27 +1,17 @@
-use editor_common::{event_bus::EventBus, geometry::Viewport};
-use editor_core::{
-    editor::Editor,
-    event::input_event::{InputEvent, Key, KeyState, Modifiers},
-};
+use editor_core::editor::Editor;
 use editor_renderer::Renderer;
 use std::sync::Arc;
 use winit::{
     application::ApplicationHandler,
-    event::{ElementState, WindowEvent},
+    event::WindowEvent,
     event_loop::ActiveEventLoop,
-    keyboard::NamedKey,
     window::{Window, WindowId},
 };
 
-type WinitKey = winit::keyboard::Key;
-
 pub struct App<'a> {
-    event_bus: EventBus,
     window_id: Option<WindowId>,
-    renderer: Option<Renderer<'a>>,
-    editor: Editor,
-
-    current_mods: Modifiers,
+    _renderer: Option<Renderer<'a>>,
+    _editor: Editor,
 }
 
 impl ApplicationHandler for App<'_> {
@@ -32,140 +22,23 @@ impl ApplicationHandler for App<'_> {
         let window = Arc::new(window);
 
         self.window_id = Some(window.id());
-        let size = window.inner_size();
-        let viewport = Viewport {
-            width: size.width,
-            height: size.height,
-        };
-
-        self.renderer = match Renderer::new(window, viewport) {
-            Ok(instance) => Some(instance),
-            Err(error) => {
-                println!("{error}");
-                return;
-            }
-        };
-        self.editor.set_viewport(viewport);
     }
 
     fn window_event(
         &mut self,
-        event_loop: &ActiveEventLoop,
+        _event_loop: &ActiveEventLoop,
         _window_id: WindowId,
-        event: WindowEvent,
+        _event: WindowEvent,
     ) {
-        let input_event = match event {
-            // exceptions (left out of the cmd/event system)
-            WindowEvent::CloseRequested => {
-                event_loop.exit();
-
-                return;
-            }
-            WindowEvent::RedrawRequested => {
-                let renderer = match &mut self.renderer {
-                    Some(renderer) => renderer,
-                    None => return,
-                };
-
-                match self.editor.render() {
-                    Ok(frame) => renderer.render(frame),
-                    Err(_) => return,
-                }
-
-                return;
-            }
-            WindowEvent::Resized(size) => {
-                let renderer = match &mut self.renderer {
-                    Some(renderer) => renderer,
-                    None => return,
-                };
-
-                let viewport = Viewport {
-                    width: size.width,
-                    height: size.height,
-                };
-                renderer.set_viewport(viewport);
-                self.editor.set_viewport(viewport);
-
-                return;
-            }
-            WindowEvent::ModifiersChanged(mods) => {
-                let state = mods.state();
-
-                self.current_mods.shift = state.shift_key();
-                self.current_mods.ctrl = state.control_key();
-                self.current_mods.alt = state.alt_key();
-                self.current_mods.super_key = state.super_key();
-
-                return;
-            }
-            // keyboard input
-            WindowEvent::KeyboardInput { event, .. } => {
-                let key = match event.logical_key {
-                    WinitKey::Character(str) => Key::Character(str.to_string()),
-                    WinitKey::Named(key) => match key {
-                        NamedKey::Space => Key::Space,
-                        NamedKey::Enter => Key::Enter,
-                        NamedKey::Escape => Key::Escape,
-                        NamedKey::Backspace => Key::Backspace,
-                        NamedKey::Tab => Key::Tab,
-                        NamedKey::Delete => Key::Delete,
-
-                        NamedKey::ArrowLeft => Key::Left,
-                        NamedKey::ArrowRight => Key::Right,
-                        NamedKey::ArrowUp => Key::Up,
-                        NamedKey::ArrowDown => Key::Down,
-
-                        NamedKey::F1 => Key::F(1),
-                        NamedKey::F2 => Key::F(2),
-                        NamedKey::F3 => Key::F(3),
-                        NamedKey::F4 => Key::F(4),
-                        NamedKey::F5 => Key::F(5),
-                        NamedKey::F6 => Key::F(6),
-                        NamedKey::F7 => Key::F(7),
-                        NamedKey::F8 => Key::F(8),
-                        NamedKey::F9 => Key::F(9),
-                        NamedKey::F10 => Key::F(10),
-                        NamedKey::F11 => Key::F(11),
-                        NamedKey::F12 => Key::F(12),
-
-                        _ => return, // for unused named keys
-                    },
-                    _ => return, // for unknown/dead keys
-                };
-
-                let state = match event.state {
-                    ElementState::Pressed => KeyState::Pressed,
-                    ElementState::Released => KeyState::Released,
-                };
-
-                InputEvent::Key {
-                    key,
-                    state,
-                    mods: self.current_mods,
-                }
-            }
-            // mouse/touch input
-            _ => return, // for unsued window events
-        };
-    }
-
-    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        // keep the loop running
-        self.event_bus.flush_queue();
     }
 }
 
 impl App<'_> {
     pub fn new() -> Self {
         Self {
-            event_bus: EventBus::new(),
-
             window_id: None,
-            renderer: None,
-            editor: Editor::new().expect("Failed to create an editor"),
-
-            current_mods: Modifiers::default(),
+            _renderer: None,
+            _editor: Editor::new().expect("Failed to create an editor"),
         }
     }
 }

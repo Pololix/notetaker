@@ -1,5 +1,4 @@
 mod app;
-mod event_bus;
 use winit::event_loop::{ControlFlow, EventLoop};
 
 fn main() {
