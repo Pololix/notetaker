@@ -1,4 +1,3 @@
-pub use runtime::LuaRuntime;
+pub use runtime::{LuaRuntime, LuaRuntimeError};
 
-mod keybinds;
 mod runtime;

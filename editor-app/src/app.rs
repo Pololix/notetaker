@@ -38,7 +38,7 @@ impl App {
         Self {
             window_id: None,
             _renderer: None,
-            _editor: Editor::new(),
+            _editor: Editor::new().expect("Failed to create a new editor instance"),
         }
     }
 }
