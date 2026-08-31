@@ -1,4 +1,4 @@
-use editor_core::editor::Editor;
+use editor_core::Editor;
 use editor_renderer::Renderer;
 use std::sync::Arc;
 use winit::{
@@ -8,13 +8,13 @@ use winit::{
     window::{Window, WindowId},
 };
 
-pub struct App<'a> {
+pub struct App {
     window_id: Option<WindowId>,
-    _renderer: Option<Renderer<'a>>,
+    _renderer: Option<Renderer>,
     _editor: Editor,
 }
 
-impl ApplicationHandler for App<'_> {
+impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let window = event_loop
             .create_window(Window::default_attributes())
@@ -33,12 +33,12 @@ impl ApplicationHandler for App<'_> {
     }
 }
 
-impl App<'_> {
+impl App {
     pub fn new() -> Self {
         Self {
             window_id: None,
             _renderer: None,
-            _editor: Editor::new().expect("Failed to create an editor"),
+            _editor: Editor::new(),
         }
     }
 }

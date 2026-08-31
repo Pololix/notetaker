@@ -1,11 +1,6 @@
-#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub enum InputEvent {
-    Key {
-        key: Key,
-        state: KeyState,
-        mods: Modifiers,
-    },
+    Key { key: Key, mods: Modifiers },
 }
 
 #[derive(Debug, Clone)]
@@ -25,12 +20,6 @@ pub enum Key {
     Right,
     Up,
     Down,
-}
-
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum KeyState {
-    Pressed,
-    Released,
 }
 
 #[derive(Debug, Default, Clone, Copy)]
