@@ -1,19 +1,14 @@
 use crate::{
     event::{EventBus, input_event::InputEvent},
-    lua::{LuaRuntime, LuaRuntimeError},
     user_mode::UserMode,
 };
 
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]
-pub enum EditorError {
-    #[error("{0}")]
-    LuaRuntime(#[from] LuaRuntimeError),
-}
+pub enum EditorError {}
 
 pub struct Editor {
     event_bus: EventBus,
-    lua: LuaRuntime,
 
     user_mode: UserMode,
 }
@@ -22,7 +17,6 @@ impl Editor {
     pub fn new() -> Result<Self, EditorError> {
         Ok(Self {
             event_bus: EventBus::default(),
-            lua: LuaRuntime::new()?,
 
             user_mode: UserMode::Normal,
         })
