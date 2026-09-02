@@ -1,6 +1,9 @@
 #[derive(Debug, Clone)]
 pub enum EditorCommand {
+    // global
     Quit,
+    Undo,
+    Redo,
 
     // workspaces
     OpenWorkspace,
@@ -8,7 +11,6 @@ pub enum EditorCommand {
 
     // modes
     EnterNormalMode,
-    EnterPendOpMode,
     EnterInsertMode,
     EnterCmdlineMode,
     EnterTerminalMode,
@@ -16,18 +18,14 @@ pub enum EditorCommand {
     // buffers
     MoveFocus,
     OpenBuffer,
-    QuitBuffer,
     SplitBuffer,
-    AddBuffer,
+    WriteBuffer,
+    QuitBuffer,
 
     // buffer ops
     MoveCursor,
     Insert,
     Delete,
     DeleteSelection,
-    Write,
-
-    Undo,
-    Redo,
     // todo: plugin commands
 }

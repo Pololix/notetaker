@@ -1,6 +1,13 @@
 #[derive(Debug, Clone)]
 pub enum InputEvent {
-    Key { key: Key, mods: Modifiers },
+    KeyPress(KeyPress),
+    // mouse, touchscreen...
+}
+
+#[derive(Debug, Clone)]
+pub struct KeyPress {
+    key: Key,
+    mods: Mods,
 }
 
 #[derive(Debug, Clone)]
@@ -23,9 +30,15 @@ pub enum Key {
 }
 
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Modifiers {
-    pub shift: bool,
-    pub ctrl: bool,
-    pub alt: bool,
-    pub super_key: bool,
+pub struct Mods(u8);
+
+impl Mods {
+    const SHIFT: u8 = 1 << 0;
+    const CTRL: u8 = 1 << 1;
+    const ALT: u8 = 1 << 2;
+    const SUPER: u8 = 1 << 3;
+
+    pub fn contains(self, mask: u8) -> bool {
+        self.0 & mask != 0
+    }
 }

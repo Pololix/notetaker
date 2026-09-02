@@ -1,62 +1,77 @@
 use crate::event::{EditorCommand, EditorEvent};
+use std::collections::VecDeque;
 
-type EventHandler = Box<dyn FnMut(&EditorEvent, &mut CommandWriter)>;
-type CommandHandler = Box<dyn FnMut(&EditorCommand, &mut EventWriter)>;
-
-struct EventWriter<'a> {
-    pub queue: &'a mut Vec<EditorEvent>,
+#[derive(Debug)]
+struct CommandWriter<'a> {
+    queue: &'a mut VecDeque<EditorCommand>,
 }
 
-struct CommandWriter<'a> {
-    pub queue: &'a mut Vec<EditorCommand>,
+impl CommandWriter<'_> {
+    pub fn push(&mut self, cmd: EditorCommand) {
+        self.queue.push_back(cmd);
+    }
+}
+
+#[derive(Debug)]
+struct EventWriter<'a> {
+    queue: &'a mut VecDeque<EditorEvent>,
+}
+
+impl EventWriter<'_> {
+    pub fn push(&mut self, event: EditorEvent) {
+        self.queue.push_back(event);
+    }
 }
 
 #[derive(Default)]
 pub struct EventBus {
-    event_queue: Vec<EditorEvent>,
-    event_handlers: Vec<EventHandler>,
+    cmd_queue: VecDeque<EditorCommand>,
+    cmd_handlers: Vec<Box<dyn FnMut(&EditorCommand, &mut EventWriter)>>,
 
-    cmd_queue: Vec<EditorCommand>,
-    cmd_handlers: Vec<CommandHandler>,
+    event_queue: VecDeque<EditorEvent>,
+    event_handlers: Vec<Box<dyn FnMut(&EditorEvent, &mut CommandWriter)>>,
 }
 
 impl EventBus {
-    pub fn on_event(&mut self, event_handler: EventHandler) {
-        self.event_handlers.push(event_handler);
+    // subscriptions
+    pub fn on_command<F: FnMut(&EditorCommand, &mut EventWriter) + 'static>(&mut self, handler: F) {
+        self.cmd_handlers.push(Box::new(handler));
     }
 
-    pub fn on_command(&mut self, cmd_handler: CommandHandler) {
-        self.cmd_handlers.push(cmd_handler);
+    pub fn on_event<F: FnMut(&EditorEvent, &mut CommandWriter) + 'static>(&mut self, handler: F) {
+        self.event_handlers.push(Box::new(handler))
+    }
+
+    // submissions
+    pub fn push_command(&mut self, cmd: EditorCommand) {
+        self.cmd_queue.push_back(cmd);
     }
 
     pub fn push_event(&mut self, event: EditorEvent) {
-        self.event_queue.push(event);
+        self.event_queue.push_back(event);
     }
 
-    pub fn push_command(&mut self, cmd: EditorCommand) {
-        self.cmd_queue.push(cmd);
-    }
-
+    // processing
     pub fn update(&mut self) {
-        let cmds: Vec<_> = self.cmd_queue.drain(..).collect();
-        for cmd in cmds {
+        // events emmited by commands are immediatly acted upon
+        while let Some(cmd) = self.cmd_queue.pop_front() {
             let mut event_writer = EventWriter {
                 queue: &mut self.event_queue,
             };
 
-            for handler in &mut self.cmd_handlers {
-                handler(&cmd, &mut event_writer);
-            }
+            self.cmd_handlers
+                .iter_mut()
+                .for_each(|handler| handler(&cmd, &mut event_writer));
         }
-        let events: Vec<_> = self.event_queue.drain(..).collect();
-        for event in events {
+        // commands emmited by events are stored for the next iteration
+        while let Some(event) = self.event_queue.pop_front() {
             let mut cmd_writer = CommandWriter {
                 queue: &mut self.cmd_queue,
             };
 
-            for handler in &mut self.event_handlers {
-                handler(&event, &mut cmd_writer);
-            }
+            self.event_handlers
+                .iter_mut()
+                .for_each(|handler| handler(&event, &mut cmd_writer));
         }
     }
 }
