@@ -4,13 +4,13 @@ pub enum InputEvent {
     // mouse, touchscreen...
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct KeyPress {
-    key: Key,
-    mods: Mods,
+    pub key: Key,
+    pub mods: Mods,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum Key {
     Character(String),
 
@@ -29,16 +29,27 @@ pub enum Key {
     Down,
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Copy, Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Mods(u8);
 
 impl Mods {
-    const SHIFT: u8 = 1 << 0;
-    const CTRL: u8 = 1 << 1;
-    const ALT: u8 = 1 << 2;
-    const SUPER: u8 = 1 << 3;
+    pub const SHIFT: u8 = 1 << 0;
+    pub const CTRL: u8 = 1 << 1;
+    pub const ALT: u8 = 1 << 2;
+    pub const SUPER: u8 = 1 << 3;
 
-    pub fn contains(self, mask: u8) -> bool {
+    pub fn empty() -> Self {
+        Self(0)
+    }
+
+    pub fn with(&mut self, key: u8) {
+        // mods are only assigned if not in already
+        if !self.contains(key) {
+            self.0 += key;
+        }
+    }
+
+    pub fn contains(&self, mask: u8) -> bool {
         self.0 & mask != 0
     }
 }

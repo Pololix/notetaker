@@ -1,7 +1,8 @@
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum UserMode {
     Normal,
+    Visual,
     Insert,
-    Cmdline,
+    Command,
     Terminal,
 }
