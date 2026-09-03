@@ -1,6 +1,8 @@
+use std::time::Instant;
+
 use crate::{
     event::{EventBus, input_event::InputEvent},
-    lua::{LuaRuntime, LuaRuntimeError},
+    lua::{KeybindResolveResult, LuaRuntime, LuaRuntimeError},
     user_mode::UserMode,
 };
 
@@ -28,8 +30,17 @@ impl Editor {
         })
     }
 
-    pub fn handle_input(&mut self, input_event: InputEvent) {
-        // ask lua for Result
-        // publish result on the bus
+    pub fn update(&mut self, now: Instant) {
+        // check for pending events due to timedout keybinds
+        if let Some(cmd) = self
+            .lua_runtime
+            .keybinds
+            .borrow_mut()
+            .check_pending_deadline(now)
+        {
+            self.event_bus.push_command(cmd);
+        }
     }
+
+    pub fn handle_input(&mut self, input_event: InputEvent) {}
 }
