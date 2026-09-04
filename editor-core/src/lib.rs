@@ -1,4 +1,7 @@
 pub use editor::Editor;
+pub use event::{EditorEvent, input_event};
+
+pub mod util;
 
 mod editor;
 mod event;

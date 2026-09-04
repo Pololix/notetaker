@@ -11,6 +11,7 @@ pub enum EditorCommand {
 
     // modes
     EnterNormalMode,
+    EnterVisualMode,
     EnterInsertMode,
     EnterCmdlineMode,
     EnterTerminalMode,

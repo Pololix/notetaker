@@ -1,6 +1,6 @@
 #[derive(Debug, Clone)]
 pub enum InputEvent {
-    KeyPress(KeyPress),
+    Key(KeyPress),
     // mouse, touchscreen...
 }
 
@@ -29,7 +29,7 @@ pub enum Key {
     Down,
 }
 
-#[derive(Copy, Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct Mods(u8);
 
 impl Mods {
@@ -42,11 +42,22 @@ impl Mods {
         Self(0)
     }
 
-    pub fn with(&mut self, key: u8) {
+    pub fn with(self, key: u8) -> Self {
         // mods are only assigned if not in already
         if !self.contains(key) {
-            self.0 += key;
+            return Self(self.0 + key);
         }
+
+        self
+    }
+
+    pub fn without(self, key: u8) -> Self {
+        // mods are only removed if already in
+        if self.contains(key) {
+            return Self(self.0 - key);
+        }
+
+        self
     }
 
     pub fn contains(&self, mask: u8) -> bool {

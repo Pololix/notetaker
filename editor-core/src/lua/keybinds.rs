@@ -16,14 +16,6 @@ use std::{
 
 const TIMEOUT: Duration = Duration::from_millis(500);
 
-#[derive(Debug, Clone)]
-pub enum KeybindResolveResult {
-    Match(EditorCommand),
-    MatchOrPending(EditorCommand),
-    Pending,
-    NoMatch,
-}
-
 #[derive(Debug, Default)]
 struct TrieNode {
     children: HashMap<KeyPress, TrieNode>,
@@ -70,10 +62,81 @@ impl KeybindRegistry {
         Ok(())
     }
 
+    pub fn resolve(
+        &mut self,
+        mode: UserMode,
+        key: KeyPress,
+        now: Instant,
+    ) -> Option<EditorCommand> {
+        // extend pending or create new sequence
+        let sequence = match &self.pending {
+            Some(state) => {
+                let mut sequence = state.sequence.clone();
+                sequence.push(key.clone());
+                sequence
+            }
+            None => vec![key.clone()],
+        };
+
+        // fecth root and early return if no keybind mapped to mode
+        let Some(root) = self.binds.get(&mode) else {
+            debug_assert!(self.pending.is_none());
+            return self.fallback(mode, key);
+        };
+
+        let mut node = root;
+        // if at any point of the sequence it doesnt match, discard pending
+        for sequence_key in &sequence {
+            node = match node.children.get(sequence_key) {
+                Some(child) => child,
+                None => {
+                    if self.pending.is_some() {
+                        self.pending = None;
+                        return None;
+                    }
+
+                    return self.fallback(mode, key);
+                }
+            }
+        }
+
+        match (node.cmd, node.children.is_empty()) {
+            // completed keybind
+            (Some(cmd), true) => {
+                self.pending = None;
+
+                Some(cmd)
+            }
+            // copleted keybind and prefix of a larger one
+            (Some(cmd), false) => {
+                self.pending = Some(PendingState {
+                    cmd: Some(cmd),
+                    sequence,
+                    deadline: now + TIMEOUT,
+                });
+
+                None
+            }
+            // prefix
+            (None, false) => {
+                self.pending = Some(PendingState {
+                    cmd: None,
+                    sequence,
+                    deadline: now + TIMEOUT,
+                });
+
+                None
+            }
+            // there shouldnt be any leafs without a cmd assigned
+            (None, true) => unreachable!(),
+        }
+    }
+
     pub fn check_pending_deadline(&mut self, now: Instant) -> Option<EditorCommand> {
         if let Some(state) = self.pending.clone()
             && state.deadline <= now
         {
+            // pending expired, fire the cmd if any
             self.pending = None;
             return state.cmd;
         }
@@ -81,53 +144,12 @@ impl KeybindRegistry {
         None
     }
 
-    pub fn resolve(&mut self, mode: UserMode, key: KeyPress, now: Instant) -> KeybindResolveResult {
-        // push to pending or create new sequence
-        let sequence = match &self.pending {
-            Some(state) => {
-                let mut sequence = state.sequence.clone();
-                sequence.push(key);
-                sequence
+    fn fallback(&self, mode: UserMode, key: KeyPress) -> Option<EditorCommand> {
+        match mode {
+            UserMode::Insert | UserMode::Command | UserMode::Terminal => {
+                Some(EditorCommand::Insert)
             }
-            None => vec![key],
-        };
-
-        let Some(mut node) = self.binds.get_mut(&mode) else {
-            return KeybindResolveResult::NoMatch;
-        };
-        // get the current node and exit early if no match at any point of the sequence
-        for key in &sequence {
-            node = match node.children.get_mut(&key) {
-                Some(child) => child,
-                None => return KeybindResolveResult::NoMatch,
-            }
-        }
-
-        match (node.cmd, node.children.is_empty()) {
-            (Some(cmd), true) => {
-                self.pending = None;
-                KeybindResolveResult::Match(cmd)
-            }
-            (Some(cmd), false) => {
-                self.pending = Some(PendingState {
-                    cmd: Some(cmd),
-                    sequence,
-                    deadline: now + TIMEOUT,
-                });
-                KeybindResolveResult::MatchOrPending(cmd)
-            }
-            (None, true) => {
-                self.pending = Some(PendingState {
-                    cmd: None,
-                    sequence,
-                    deadline: now + TIMEOUT,
-                });
-                KeybindResolveResult::Pending
-            }
-            (None, false) => {
-                self.pending = None;
-                KeybindResolveResult::NoMatch
-            }
+            _ => None,
         }
     }
 
@@ -253,7 +275,7 @@ impl KeybindRegistry {
 
         // fecth mods from spare parts
         // if no mods, key pressed is assigned an empty Mods
-        let mut mods = Mods::empty();
+        let mods = Mods::empty();
         for part in parts {
             match part {
                 "SHIFT" => mods.with(Mods::SHIFT),
@@ -262,7 +284,7 @@ impl KeybindRegistry {
                 "SUPER" => mods.with(Mods::SUPER),
 
                 _ => return Err(LuaRuntimeError::InvalidArg(1)),
-            }
+            };
         }
 
         Ok(KeyPress { key, mods })
@@ -275,6 +297,7 @@ impl KeybindRegistry {
                 Ok(Key::Character(input.chars().next().unwrap().to_string()))
             }
 
+            // if more then is a special key
             "Space" => Ok(Key::Space),
             "Enter" => Ok(Key::Enter),
             "Escape" => Ok(Key::Escape),

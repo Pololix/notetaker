@@ -1,39 +1,3 @@
-use crate::{
-    event::{
-        editor_event::EditorCommand,
-        input_event::{
-            InputEvent, Key,
-            KeyState::{self, Released},
-        },
-        workspace_event::WorkspaceCommand,
-    },
-    workspace::{MoveDirection, SplitMode, Workspace, WorkspaceError, WorkspaceId},
-};
-use editor_common::{geometry::Viewport, rendering::RenderFrame};
-use std::collections::HashMap;
-
-#[non_exhaustive]
-#[derive(Debug, thiserror::Error)]
-pub enum EditorError {
-    #[error("Failed to retrieve the active workspace")]
-    NullActive,
-
-    #[error("Failed to retrieve a workspace from the given id")]
-    InvalidWorkspaceId,
-
-    #[error("Cant add another workspace because the limit has been reached")]
-    Overflow,
-
-    #[error("Error ocurred at workspace level: {0}")]
-    Workspace(#[from] WorkspaceError),
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum UserMode {
-    Normal,
-    Insert,
-}
-
 #[derive(Debug)]
 pub struct Editor {
     viewport: Viewport,

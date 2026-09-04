@@ -1,8 +1,8 @@
 use std::time::Instant;
 
 use crate::{
-    event::{EventBus, input_event::InputEvent},
-    lua::{KeybindResolveResult, LuaRuntime, LuaRuntimeError},
+    event::EventBus,
+    lua::{LuaRuntime, LuaRuntimeError},
     user_mode::UserMode,
 };
 
@@ -14,7 +14,7 @@ pub enum EditorError {
 }
 
 pub struct Editor {
-    event_bus: EventBus,
+    pub event_bus: EventBus,
     lua_runtime: LuaRuntime,
 
     user_mode: UserMode,
@@ -31,7 +31,7 @@ impl Editor {
     }
 
     pub fn update(&mut self, now: Instant) {
-        // check for pending events due to timedout keybinds
+        // check for pending events due to timed-out keybinds
         if let Some(cmd) = self
             .lua_runtime
             .keybinds
@@ -40,7 +40,7 @@ impl Editor {
         {
             self.event_bus.push_command(cmd);
         }
-    }
 
-    pub fn handle_input(&mut self, input_event: InputEvent) {}
+        self.event_bus.update();
+    }
 }
