@@ -59,46 +59,41 @@ impl App {
     }
 
     fn handle_window_event(&mut self, event: WindowEvent, event_loop: &ActiveEventLoop) {
-        let event = match event {
+        match event {
             // rendering
             WindowEvent::Resized(size) => {
                 let viewport = Viewport {
                     width: size.width,
                     height: size.height,
                 };
-                EditorEvent::Resized(viewport)
+                self.editor
+                    .event_bus
+                    .push_event(EditorEvent::Resized(viewport));
             }
-            WindowEvent::RedrawRequested => EditorEvent::RedrawRequested,
+            WindowEvent::RedrawRequested => self
+                .editor
+                .event_bus
+                .push_event(EditorEvent::RedrawRequested),
 
             // input
             WindowEvent::ModifiersChanged(mods) => {
                 let state = mods.state();
+                let mods = Mods::empty();
 
                 if state.shift_key() {
-                    self.mods.with(Mods::SHIFT);
-                } else {
-                    self.mods.without(Mods::SHIFT);
+                    mods.with(Mods::SHIFT);
                 }
-
                 if state.control_key() {
-                    self.mods.with(Mods::CTRL);
-                } else {
-                    self.mods.without(Mods::CTRL);
+                    mods.with(Mods::CTRL);
                 }
-
                 if state.alt_key() {
-                    self.mods.with(Mods::ALT);
-                } else {
-                    self.mods.without(Mods::ALT);
+                    mods.with(Mods::ALT);
                 }
-
                 if state.super_key() {
-                    self.mods.with(Mods::SUPER);
-                } else {
-                    self.mods.without(Mods::SUPER);
+                    mods.with(Mods::SUPER);
                 }
 
-                return;
+                self.mods = mods;
             }
             WindowEvent::KeyboardInput { event, .. } => {
                 if !event.state.is_pressed() {
@@ -138,22 +133,23 @@ impl App {
                     _ => return, // for unknown/dead keys
                 };
 
-                EditorEvent::Input(InputEvent::Key(KeyPress {
-                    key,
-                    mods: self.mods,
-                }))
+                self.editor
+                    .event_bus
+                    .push_event(EditorEvent::Input(InputEvent::Key(KeyPress {
+                        key,
+                        mods: self.mods,
+                    })));
             }
-            WindowEvent::MouseInput { state, button, .. } => return,
-            WindowEvent::MouseWheel { delta, .. } => return,
-            WindowEvent::CursorMoved { position, .. } => return,
+            WindowEvent::MouseInput { state, button, .. } => {}
+            WindowEvent::MouseWheel { delta, .. } => {}
+            WindowEvent::CursorMoved { position, .. } => {}
+
             // closing
             WindowEvent::CloseRequested => {
                 event_loop.exit();
-                return;
             }
-            _ => return, // unused WindowEvents
-        };
 
-        self.editor.event_bus.push_event(event);
+            _ => {} // unused WindowEvents
+        };
     }
 }

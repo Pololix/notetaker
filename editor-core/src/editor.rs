@@ -1,9 +1,10 @@
 use std::time::Instant;
 
 use crate::{
+    EditorEvent,
     event::EventBus,
     lua::{LuaRuntime, LuaRuntimeError},
-    user_mode::UserMode,
+    workspace::WorkspaceRegistry,
 };
 
 #[non_exhaustive]
@@ -14,10 +15,10 @@ pub enum EditorError {
 }
 
 pub struct Editor {
-    pub event_bus: EventBus,
+    event_bus: EventBus,
     lua_runtime: LuaRuntime,
 
-    user_mode: UserMode,
+    workspaces: WorkspaceRegistry,
 }
 
 impl Editor {
@@ -26,21 +27,16 @@ impl Editor {
             event_bus: EventBus::default(),
             lua_runtime: LuaRuntime::new()?,
 
-            user_mode: UserMode::Normal,
+            workspaces: WorkspaceRegistry::new(),
         })
     }
 
-    pub fn update(&mut self, now: Instant) {
-        // check for pending events due to timed-out keybinds
-        if let Some(cmd) = self
-            .lua_runtime
-            .keybinds
-            .borrow_mut()
-            .check_pending_deadline(now)
-        {
-            self.event_bus.push_command(cmd);
-        }
+    pub fn push_event(&mut self, event: EditorEvent) {
+        self.event_bus.push_event(event);
+    }
 
+    pub fn update(&mut self, now: Instant) {
+        self.event_bus.push_event(EditorEvent::Update(now));
         self.event_bus.update();
     }
 }

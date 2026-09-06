@@ -1,22 +1,3 @@
-use crate::{
-    buffer::{Buffer, BufferId},
-    event::workspace_event::{WorkspaceCommand, WorkspaceEvent},
-};
-use editor_common::{
-    color::Color,
-    geometry::{Point, Rect, Viewport},
-    rendering::RenderCommand,
-};
-use std::collections::HashMap;
-
-// placeholder configs
-const MARGIN: u32 = 20; // from edge to buffer background
-const PADDING: u32 = 10; // between views
-const TEXT_MARGIN: u32 = 10; // from buffer background edge to text
-
-type NodeId = usize;
-pub type WorkspaceId = usize;
-
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]
 pub enum WorkspaceError {

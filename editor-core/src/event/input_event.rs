@@ -51,15 +51,6 @@ impl Mods {
         self
     }
 
-    pub fn without(self, key: u8) -> Self {
-        // mods are only removed if already in
-        if self.contains(key) {
-            return Self(self.0 - key);
-        }
-
-        self
-    }
-
     pub fn contains(&self, mask: u8) -> bool {
         self.0 & mask != 0
     }
