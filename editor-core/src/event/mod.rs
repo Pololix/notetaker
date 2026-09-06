@@ -1,6 +1,6 @@
 pub use command::EditorCommand;
 pub use event::EditorEvent;
-pub use event_bus::EventBus;
+pub use event_bus::{CommandWriter, EventBus, EventWriter};
 
 pub mod input_event;
 

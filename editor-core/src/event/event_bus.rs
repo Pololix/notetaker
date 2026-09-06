@@ -2,7 +2,7 @@ use crate::event::{EditorCommand, EditorEvent};
 use std::collections::VecDeque;
 
 #[derive(Debug)]
-struct CommandWriter<'a> {
+pub struct CommandWriter<'a> {
     queue: &'a mut VecDeque<EditorCommand>,
 }
 
@@ -13,7 +13,7 @@ impl CommandWriter<'_> {
 }
 
 #[derive(Debug)]
-struct EventWriter<'a> {
+pub struct EventWriter<'a> {
     queue: &'a mut VecDeque<EditorEvent>,
 }
 
@@ -53,17 +53,7 @@ impl EventBus {
 
     // processing
     pub fn update(&mut self) {
-        // events emmited by commands are immediatly acted upon
-        while let Some(cmd) = self.cmd_queue.pop_front() {
-            let mut event_writer = EventWriter {
-                queue: &mut self.event_queue,
-            };
-
-            self.cmd_handlers
-                .iter_mut()
-                .for_each(|handler| handler(&cmd, &mut event_writer));
-        }
-        // commands emmited by events are stored for the next iteration
+        // commands emmited by events are immediatly acted upon
         while let Some(event) = self.event_queue.pop_front() {
             let mut cmd_writer = CommandWriter {
                 queue: &mut self.cmd_queue,
@@ -72,6 +62,17 @@ impl EventBus {
             self.event_handlers
                 .iter_mut()
                 .for_each(|handler| handler(&event, &mut cmd_writer));
+        }
+
+        // events emmited by commands are stored for the next iteration
+        while let Some(cmd) = self.cmd_queue.pop_front() {
+            let mut event_writer = EventWriter {
+                queue: &mut self.event_queue,
+            };
+
+            self.cmd_handlers
+                .iter_mut()
+                .for_each(|handler| handler(&cmd, &mut event_writer));
         }
     }
 }
