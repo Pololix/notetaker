@@ -23,9 +23,12 @@ pub struct Editor {
 
 impl Editor {
     pub fn new() -> Result<Self, EditorError> {
+        let mut event_bus = EventBus::default();
+        let lua_runtime = LuaRuntime::new(&mut event_bus)?;
+
         Ok(Self {
-            event_bus: EventBus::default(),
-            lua_runtime: LuaRuntime::new()?,
+            event_bus,
+            lua_runtime,
 
             workspaces: WorkspaceRegistry::new(),
         })

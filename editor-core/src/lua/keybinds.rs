@@ -1,8 +1,10 @@
 use crate::{
+    EditorEvent,
     event::{
-        EditorCommand,
+        EditorCommand, EventBus,
         input_event::{Key, KeyPress, Mods},
     },
+    input_event::InputEvent,
     lua::LuaRuntimeError,
     user_mode::UserMode,
 };
@@ -62,12 +64,35 @@ impl KeybindRegistry {
         Ok(())
     }
 
-    pub fn resolve(
-        &mut self,
-        mode: UserMode,
-        key: KeyPress,
-        now: Instant,
-    ) -> Option<EditorCommand> {
+    pub fn subscribe_to_bus(registry: &Rc<RefCell<Self>>, event_bus: &mut EventBus) {
+        let registry = Rc::clone(registry);
+
+        event_bus.on_event(move |event, cmd_writer| match event {
+            EditorEvent::Update(now) => {
+                if let Some(cmd) = registry.borrow_mut().check_pending_deadline(*now) {
+                    cmd_writer.push(cmd);
+                }
+            }
+            EditorEvent::Input(input_event) => {
+                if let InputEvent::Key(key) = input_event {
+                    registry.borrow_mut().resolve(mode, *key, now);
+                }
+            }
+
+            _ => {}
+        });
+    }
+
+    fn register(&mut self, mode: UserMode, sequence: &[KeyPress], cmd: EditorCommand) {
+        let mut node = self.binds.entry(mode).or_default();
+        for key in sequence {
+            node = node.children.entry(key.clone()).or_default();
+        }
+
+        node.cmd = Some(cmd);
+    }
+
+    fn resolve(&mut self, mode: UserMode, key: KeyPress, now: Instant) -> Option<EditorCommand> {
         // extend pending or create new sequence
         let sequence = match &self.pending {
             Some(state) => {
@@ -132,7 +157,7 @@ impl KeybindRegistry {
         }
     }
 
-    pub fn check_pending_deadline(&mut self, now: Instant) -> Option<EditorCommand> {
+    fn check_pending_deadline(&mut self, now: Instant) -> Option<EditorCommand> {
         if let Some(state) = self.pending.clone()
             && state.deadline <= now
         {
@@ -151,15 +176,6 @@ impl KeybindRegistry {
             }
             _ => None,
         }
-    }
-
-    fn register(&mut self, mode: UserMode, sequence: &[KeyPress], cmd: EditorCommand) {
-        let mut node = self.binds.entry(mode).or_default();
-        for key in sequence {
-            node = node.children.entry(key.clone()).or_default();
-        }
-
-        node.cmd = Some(cmd);
     }
 
     fn parse_mode(input: &str) -> Result<UserMode, LuaRuntimeError> {

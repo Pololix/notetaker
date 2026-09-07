@@ -1,4 +1,4 @@
-use crate::lua::keybinds::KeybindRegistry;
+use crate::{event::EventBus, lua::keybinds::KeybindRegistry};
 use mlua::{Lua, StdLib};
 use std::{cell::RefCell, path::Path, rc::Rc};
 
@@ -31,7 +31,7 @@ pub struct LuaRuntime {
 }
 
 impl LuaRuntime {
-    pub fn new() -> Result<Self, LuaRuntimeError> {
+    pub fn new(event_bus: &mut EventBus) -> Result<Self, LuaRuntimeError> {
         let lua = Lua::new();
         // implement package for require function
         lua.load_std_libs(StdLib::PACKAGE)?;
@@ -41,6 +41,9 @@ impl LuaRuntime {
 
         let keybinds = Rc::new(RefCell::new(KeybindRegistry::default()));
         KeybindRegistry::load_lua_api(&keybinds, &lua, &editor_table)?;
+
+        // register systems to the bus if necessary
+        KeybindRegistry::subscribe_to_bus(&keybinds, &mut event_bus);
 
         // assemble and fetch config
         let mut runtime = LuaRuntime { lua, keybinds };
