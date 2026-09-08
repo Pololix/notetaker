@@ -1,6 +1,0 @@
-[workspace]
-resolver = "2"
-members = ["editor-app", "editor-core", "editor-renderer"]
-
-[workspace.dependencies]
-thiserror = "2.0.20"
