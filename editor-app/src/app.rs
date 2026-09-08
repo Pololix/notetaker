@@ -66,14 +66,9 @@ impl App {
                     width: size.width,
                     height: size.height,
                 };
-                self.editor
-                    .event_bus
-                    .push_event(EditorEvent::Resized(viewport));
+                self.editor.push_event(EditorEvent::Resized(viewport));
             }
-            WindowEvent::RedrawRequested => self
-                .editor
-                .event_bus
-                .push_event(EditorEvent::RedrawRequested),
+            WindowEvent::RedrawRequested => self.editor.push_event(EditorEvent::RedrawRequested),
 
             // input
             WindowEvent::ModifiersChanged(mods) => {
@@ -134,15 +129,14 @@ impl App {
                 };
 
                 self.editor
-                    .event_bus
                     .push_event(EditorEvent::Input(InputEvent::Key(KeyPress {
                         key,
                         mods: self.mods,
                     })));
             }
-            WindowEvent::MouseInput { state, button, .. } => {}
-            WindowEvent::MouseWheel { delta, .. } => {}
-            WindowEvent::CursorMoved { position, .. } => {}
+            // WindowEvent::MouseInput { state, button, .. } => {}
+            // WindowEvent::MouseWheel { delta, .. } => {}
+            // WindowEvent::CursorMoved { position, .. } => {}
 
             // closing
             WindowEvent::CloseRequested => {
