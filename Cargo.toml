@@ -1,7 +1,13 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 
-members = ["app", "core", "ui"]
+members = ["ntk-app", "ntk-core", "ntk-renderer", "ntk-ui"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
 
 [workspace.dependencies]
-anyhow = "1.0.104"
+thiserror = "2.0.20"
+
+egui = "0.36.2"

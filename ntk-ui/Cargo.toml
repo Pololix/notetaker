@@ -1,0 +1,10 @@
+[package]
+name = "ntk-ui"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ntk-core.path = "../ntk-core"
+thiserror.workspace = true
+
+egui.workspace = true
