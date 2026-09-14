@@ -4,9 +4,8 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-ntk-core.path = "../ntk-core"
+log.workspace = true
+pollster.workspace = true
 thiserror.workspace = true
 
-egui.workspace = true
-egui-wgpu = "0.36.2"
-wgpu = "30.0.1"
+wgpu.workspace = true

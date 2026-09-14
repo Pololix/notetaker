@@ -1,13 +1,9 @@
-use egui::Context;
-use egui_winit::State;
-use ntk_core::Editor;
 use ntk_renderer::Renderer;
-use ntk_ui::Ui;
 use std::sync::Arc;
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
-    event_loop::{self, ActiveEventLoop, EventLoop},
+    event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
     window::{Window, WindowId},
 };
 
@@ -15,11 +11,7 @@ pub struct AppState {
     window: Arc<Window>,
     window_id: WindowId,
 
-    egui_ctx: Context,
-    egui_winit: State,
-
     renderer: Renderer,
-    editor: Editor,
 }
 
 #[derive(Default)]
@@ -27,8 +19,11 @@ pub struct Application(Option<AppState>);
 
 impl ApplicationHandler for Application {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        let window_attrs = Window::default_attributes();
+        if self.0.is_some() {
+            return;
+        }
 
+        let window_attrs = Window::default_attributes();
         let window = Arc::new(
             event_loop
                 .create_window(window_attrs)
@@ -36,26 +31,17 @@ impl ApplicationHandler for Application {
         );
         let window_id = window.id();
 
-        let egui_ctx = Context::default();
-        let egui_winit = State::new(
-            egui_ctx.clone(),
-            egui::ViewportId::ROOT,
-            &window,
-            Some(window.scale_factor() as f32),
-            None,
-            None,
-        );
+        let size = window.inner_size();
+        let renderer = Renderer::new(window.clone(), size.width, size.height).unwrap();
 
         self.0 = Some(AppState {
             window,
             window_id,
 
-            egui_ctx,
-            egui_winit,
-
-            renderer: Renderer::new(),
-            editor: Editor::new(),
+            renderer,
         });
+
+        log::info!("Window created");
     }
 
     fn window_event(
@@ -72,16 +58,6 @@ impl ApplicationHandler for Application {
             return;
         }
 
-        // fetch response from egui layer
-        let egui_response = state.egui_winit.on_window_event(&state.window, &event);
-        if egui_response.repaint {
-            state.window.request_redraw();
-        }
-        if egui_response.consumed {
-            return;
-        }
-
-        // use if not already consumed
         match event {
             // rendering
             WindowEvent::RedrawRequested => Self::handle_redraw(state),
@@ -90,10 +66,19 @@ impl ApplicationHandler for Application {
             // input
 
             // closing
-            WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::CloseRequested => {
+                log::info!("Closing notetaker");
+                event_loop.exit();
+            }
 
             // unused
             _ => {}
+        }
+    }
+
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+        if let Some(state) = &self.0 {
+            state.window.request_redraw();
         }
     }
 }
@@ -101,7 +86,7 @@ impl ApplicationHandler for Application {
 impl Application {
     pub fn run() {
         let event_loop = EventLoop::new().expect("Failed to create an event loop");
-        event_loop.set_control_flow(event_loop::ControlFlow::Poll);
+        event_loop.set_control_flow(ControlFlow::Poll);
 
         let mut app = Self::default();
         event_loop
@@ -109,32 +94,9 @@ impl Application {
             .expect("Failure during event loop execution");
     }
 
-    fn handle_redraw(state: &AppState) {
-        // gather input from last frame and build new one
-        let input = state.egui_winit.take_egui_input(&state.window);
-        let output = state.egui_ctx.run_ui(input, |ctx| ntk_ui::build());
-
-        state
-            .egui_winit
-            .handle_platform_output(&state.window, output.platform_output);
-
-        // prepare rendering material
-        let primitives = state
-            .egui_ctx
-            .tessellate(output.shapes, output.pixels_per_point);
-        let (width, height) = (
-            state.window.inner_size().width,
-            state.window.inner_size().height,
-        );
-
-        // update any textures if necessary and render
-        state.renderer.update_egui_textures(&output.textures_delta);
-        state
-            .renderer
-            .render(&primitives, width, height, output.pixels_per_point);
-    }
+    fn handle_redraw(state: &AppState) {}
 
     fn handle_resize(state: &AppState, width: u32, height: u32) {}
 
-    fn handle_input() {}
+    fn handle_input(state: &AppState) {}
 }

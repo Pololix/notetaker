@@ -7,8 +7,8 @@ edition.workspace = true
 ntk-core.path = "../ntk-core"
 ntk-renderer.path = "../ntk-renderer"
 ntk-ui.path = "../ntk-ui"
-pollster.workspace = true
 
-egui.workspace = true
-egui-winit.workspace = true
+log.workspace = true
+env_logger.workspace = true
+
 winit.workspace = true
