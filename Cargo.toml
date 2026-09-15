@@ -1,7 +1,7 @@
 [workspace]
 resolver = "3"
 
-members = ["ntk-app", "ntk-core", "ntk-renderer", "ntk-ui"]
+members = ["ntk-app", "ntk-core", "ntk-renderer"]
 
 [workspace.package]
 version = "0.1.0"
@@ -22,3 +22,4 @@ wgpu = "30.0.1"
 egui-wgpu = "0.36"
 winit = "0.30.11"
 egui-winit = "0.36"
+cosmic-text = "0.19.0"

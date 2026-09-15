@@ -8,4 +8,6 @@ log.workspace = true
 pollster.workspace = true
 thiserror.workspace = true
 
+egui.workspace = true
 wgpu.workspace = true
+cosmic-text.workspace = true

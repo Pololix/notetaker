@@ -6,7 +6,6 @@ edition.workspace = true
 [dependencies]
 ntk-core.path = "../ntk-core"
 ntk-renderer.path = "../ntk-renderer"
-ntk-ui.path = "../ntk-ui"
 
 log.workspace = true
 env_logger.workspace = true
