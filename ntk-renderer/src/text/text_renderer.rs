@@ -16,11 +16,11 @@ pub struct TextRenderer {
 }
 
 impl TextRenderer {
-    pub fn new() -> Result<Self, TextRendererError> {
+    pub fn new(device: &wgpu::Device) -> Result<Self, TextRendererError> {
         let mut font_system = FontSystem::new();
 
         let cache = SwashCache::new();
-        let atlas = GlyphAtlas::new();
+        let atlas = GlyphAtlas::new(device);
         let metrics = Metrics::relative(FONT_SIZE, FONT_FACT);
 
         let buffer = Buffer::new(&mut font_system, metrics);
@@ -31,5 +31,9 @@ impl TextRenderer {
             atlas,
             buffer,
         })
+    }
+
+    pub fn render_text(&mut self, text: &str) {
+        todo!("bear in mind grid occupancy")
     }
 }

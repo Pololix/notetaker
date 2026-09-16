@@ -4,10 +4,16 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+# member deps
+ntk-core.workspace = true
+
+# deps
+egui.workspace = true
+wgpu.workspace = true
+egui-wgpu.workspace = true
+cosmic-text.workspace = true
+
+# helper deps
 log.workspace = true
 pollster.workspace = true
 thiserror.workspace = true
-
-egui.workspace = true
-wgpu.workspace = true
-cosmic-text.workspace = true

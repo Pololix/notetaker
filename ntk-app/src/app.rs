@@ -1,17 +1,22 @@
+use egui::{Context, ViewportId};
+use egui_winit::State;
+use ntk_common::Viewport;
+use ntk_core::{Editor, Viewport};
 use ntk_renderer::Renderer;
 use std::sync::Arc;
 use winit::{
     application::ApplicationHandler,
+    dpi::PhysicalSize,
     event::WindowEvent,
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
     window::{Window, WindowId},
 };
 
 pub struct AppState {
-    window: Arc<Window>,
     window_id: WindowId,
-
+    window: Arc<Window>,
     renderer: Renderer,
+    editor: Editor,
 }
 
 #[derive(Default)]
@@ -29,19 +34,19 @@ impl ApplicationHandler for Application {
                 .create_window(window_attrs)
                 .expect("failed to create window"),
         );
-        let window_id = window.id();
 
         let size = window.inner_size();
-        let renderer = Renderer::new(window.clone(), size.width, size.height).unwrap();
+        let viewport = Viewport::new(size.width, size.height);
+
+        let renderer = Renderer::new(window.clone(), viewport).unwrap();
+        let editor = Editor::new(viewport);
 
         self.0 = Some(AppState {
+            window_id: window.id(),
             window,
-            window_id,
-
             renderer,
+            editor,
         });
-
-        log::info!("Window created");
     }
 
     fn window_event(
@@ -50,7 +55,6 @@ impl ApplicationHandler for Application {
         window_id: WindowId,
         event: WindowEvent,
     ) {
-        // guards
         let Some(state) = &mut self.0 else {
             return;
         };
@@ -61,13 +65,12 @@ impl ApplicationHandler for Application {
         match event {
             // rendering
             WindowEvent::RedrawRequested => Self::handle_redraw(state),
-            WindowEvent::Resized(size) => Self::handle_resize(state, size.width, size.height),
+            WindowEvent::Resized(size) => Self::handle_resize(state, size),
 
             // input
 
             // closing
             WindowEvent::CloseRequested => {
-                log::info!("Closing notetaker");
                 event_loop.exit();
             }
 
@@ -94,9 +97,20 @@ impl Application {
             .expect("Failure during event loop execution");
     }
 
-    fn handle_redraw(state: &AppState) {}
+    fn handle_redraw(state: &AppState) {
+        let frame = state.editor.render();
+        state.renderer.render(frame);
+    }
 
-    fn handle_resize(state: &AppState, width: u32, height: u32) {}
+    fn handle_resize(state: &AppState, size: PhysicalSize<u32>) {
+        let viewport = Viewport::new(size.width, size.height);
+        state.renderer.resize(viewport);
+        state.editor.resize(viewport);
+    }
 
-    fn handle_input(state: &AppState) {}
+    fn handle_input(state: &AppState, input_event: WindowEvent) {
+        match event {
+            _ => {}
+        }
+    }
 }

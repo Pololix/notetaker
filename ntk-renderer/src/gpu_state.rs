@@ -1,7 +1,6 @@
+use ntk_core::Viewport;
 use std::sync::Arc;
 use wgpu::DisplayAndWindowHandle;
-
-use crate::renderer::Viewport;
 
 #[derive(Debug, thiserror::Error)]
 pub enum GpuStateError {

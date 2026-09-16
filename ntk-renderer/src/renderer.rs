@@ -1,14 +1,12 @@
 use crate::{
     gpu_state::{GpuState, GpuStateError},
+    primitives::PrimitiveRenderer,
     text::{TextRenderer, TextRendererError},
 };
+use egui_wgpu::{Renderer as EguiRenderer, RendererOptions as EguiRendererOptions};
+use ntk_core::{Frame, Viewport};
 use std::sync::Arc;
 use wgpu::DisplayAndWindowHandle;
-
-pub struct Viewport {
-    pub width: u32,
-    pub height: u32,
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum RendererError {
@@ -21,7 +19,10 @@ pub enum RendererError {
 
 pub struct Renderer {
     state: GpuState,
+
     text_renderer: TextRenderer,
+    egui_renderer: EguiRenderer,
+    primitive_renderer: PrimitiveRenderer,
 }
 
 impl Renderer {
@@ -29,19 +30,32 @@ impl Renderer {
         target: Arc<W>,
         viewport: Viewport,
     ) -> Result<Self, RendererError> {
+        let state = GpuState::new(target, viewport)?;
+
+        let text_renderer = TextRenderer::new()?;
+        let egui_renderer = EguiRenderer::new(
+            &state.device,
+            state.config.format,
+            EguiRendererOptions::default(),
+        );
+        let primitive_renderer = PrimitiveRenderer::new();
+
         Ok(Self {
-            state: GpuState::new(target, viewport)?,
-            text_renderer: TextRenderer::new()?,
+            state,
+
+            text_renderer,
+            egui_renderer,
+            primitive_renderer,
         })
     }
 
-    pub fn resize(&mut self, width: u32, height: u32) {
-        if width == 0 || height == 0 {
+    pub fn resize(&mut self, viewport: Viewport) {
+        if viewport.width == 0 || viewport.height == 0 {
             return;
         }
 
-        self.state.config.width = width;
-        self.state.config.height = height;
+        self.state.config.width = viewport.width;
+        self.state.config.height = viewport.height;
         self.state
             .surface
             .configure(&self.state.device, &self.state.config);
@@ -51,5 +65,5 @@ impl Renderer {
         // side panel not found
     }
 
-    pub fn render(&mut self) -> Result<(), RendererError> {}
+    pub fn render(&mut self, frame: Frame) -> Result<(), RendererError> {}
 }

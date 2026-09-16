@@ -4,10 +4,11 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-ntk-core.path = "../ntk-core"
-ntk-renderer.path = "../ntk-renderer"
+# member deps
+ntk-core.workspace = true
+ntk-renderer.workspace = true
 
-log.workspace = true
-env_logger.workspace = true
-
+# deps
+egui.workspace = true
 winit.workspace = true
+egui-winit.workspace = true
