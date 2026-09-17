@@ -1,7 +1,7 @@
-pub use mode::UserMode;
-pub use workspace::Workspace;
+pub use workspace::{Workspace, WorkspaceError};
 
+mod attachment;
+mod cell_map;
 mod document;
-mod grid;
-mod mode;
+mod user_mode;
 mod workspace;

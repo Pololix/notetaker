@@ -28,12 +28,12 @@ impl EventBus {
         CommandWriter(&mut self.cmd_queue)
     }
 
-    pub fn get_events(&mut self) -> impl Iterator<Item = Event> + '_ {
-        self.event_queue.drain(..)
+    pub fn get_events(&mut self) -> Vec<Event> {
+        self.event_queue.drain(..).collect()
     }
 
-    pub fn get_commands(&mut self) -> impl Iterator<Item = Command> + '_ {
-        self.cmd_queue.drain(..)
+    pub fn get_commands(&mut self) -> Vec<Command> {
+        self.cmd_queue.drain(..).collect()
     }
 }
 

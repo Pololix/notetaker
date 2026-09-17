@@ -1,5 +1,5 @@
 use crate::{
-    document::UserMode,
+    document::{UserMode, Workspace},
     event::{Event, EventBus},
     render::Viewport,
 };
@@ -15,6 +15,8 @@ pub struct Editor {
     viewport: Viewport,
 
     event_bus: EventBus,
+
+    workspace: Workspace,
 }
 
 impl Editor {
@@ -24,6 +26,8 @@ impl Editor {
             viewport,
 
             event_bus: EventBus::default(),
+
+            workspace: Workspace::default(),
         }
     }
 
@@ -32,9 +36,9 @@ impl Editor {
         self.event_bus.push_event(event);
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, dt: f32) {
         // commands produced by events are immediately processed
-        let events: Vec<_> = self.event_bus.get_events().collect();
+        let events = self.event_bus.get_events();
         for event in events {
             let mut command_writer = self.event_bus.get_command_writer();
 
@@ -42,8 +46,8 @@ impl Editor {
         }
 
         // events produced by commands are stored for the next iteration
-        let commands: Vec<_> = self.event_bus.get_commands().collect();
-        for command in commands {
+        let cmds = self.event_bus.get_commands();
+        for cmd in cmds {
             let mut event_writer = self.event_bus.get_event_writer();
 
             // process commands

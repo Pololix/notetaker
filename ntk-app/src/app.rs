@@ -3,7 +3,10 @@ use egui_winit::State;
 use ntk_common::Viewport;
 use ntk_core::{Editor, Viewport};
 use ntk_renderer::Renderer;
-use std::sync::Arc;
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 use winit::{
     application::ApplicationHandler,
     dpi::PhysicalSize,
@@ -15,6 +18,9 @@ use winit::{
 pub struct AppState {
     window_id: WindowId,
     window: Arc<Window>,
+
+    prev_frame: Instant,
+
     renderer: Renderer,
     editor: Editor,
 }
@@ -44,6 +50,9 @@ impl ApplicationHandler for Application {
         self.0 = Some(AppState {
             window_id: window.id(),
             window,
+
+            prev_frame: Instant::now(),
+
             renderer,
             editor,
         });
@@ -80,9 +89,15 @@ impl ApplicationHandler for Application {
     }
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-        if let Some(state) = &self.0 {
-            state.window.request_redraw();
-        }
+        let Some(state) = &mut self.0 else {
+            return;
+        };
+
+        let now = Instant::now();
+        let dt = (now - state.prev_frame).as_secs_f32();
+        state.prev_frame = now;
+
+        state.editor.update(dt);
     }
 }
 
