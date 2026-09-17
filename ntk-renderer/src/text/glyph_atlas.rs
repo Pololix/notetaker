@@ -1,4 +1,4 @@
-use crate::primitives::UvCoords;
+use crate::uv::UvCoords;
 use cosmic_text::{CacheKey, SwashImage};
 use std::collections::HashMap;
 
@@ -46,7 +46,7 @@ impl GlyphAtlas {
             width: ATLAS_SIZE,
             height: ATLAS_SIZE,
             texture,
-            texture_contents: vec![0; (ATLAS_SIZE ^ 2) as usize],
+            texture_contents: vec![0; (ATLAS_SIZE * ATLAS_SIZE * 4) as usize],
             dirty: false,
             cache: HashMap::new(),
 

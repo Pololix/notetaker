@@ -1,12 +1,11 @@
 use crate::{
     gpu_state::{GpuState, GpuStateError},
-    primitives::PrimitiveRenderer,
     text::{TextRenderer, TextRendererError},
 };
 use egui_wgpu::{Renderer as EguiRenderer, RendererOptions as EguiRendererOptions};
 use ntk_core::{Frame, Viewport};
 use std::sync::Arc;
-use wgpu::DisplayAndWindowHandle;
+use wgpu::{CurrentSurfaceTexture, DisplayAndWindowHandle};
 
 #[derive(Debug, thiserror::Error)]
 pub enum RendererError {
@@ -15,6 +14,9 @@ pub enum RendererError {
 
     #[error("{0}")]
     TextRendering(#[from] TextRendererError),
+
+    #[error("Failed to render frame due to an invalid viewport input")]
+    InvalidViewport,
 }
 
 pub struct Renderer {
@@ -22,7 +24,6 @@ pub struct Renderer {
 
     text_renderer: TextRenderer,
     egui_renderer: EguiRenderer,
-    primitive_renderer: PrimitiveRenderer,
 }
 
 impl Renderer {
@@ -32,20 +33,18 @@ impl Renderer {
     ) -> Result<Self, RendererError> {
         let state = GpuState::new(target, viewport)?;
 
-        let text_renderer = TextRenderer::new()?;
+        let text_renderer = TextRenderer::new(&state.device)?;
         let egui_renderer = EguiRenderer::new(
             &state.device,
             state.config.format,
             EguiRendererOptions::default(),
         );
-        let primitive_renderer = PrimitiveRenderer::new();
 
         Ok(Self {
             state,
 
             text_renderer,
             egui_renderer,
-            primitive_renderer,
         })
     }
 
@@ -61,9 +60,22 @@ impl Renderer {
             .configure(&self.state.device, &self.state.config);
     }
 
-    fn build_ui(ctx: &egui::Context) {
-        // side panel not found
+    pub fn render(&mut self, frame: Frame) -> Result<(), RendererError> {
+        let status = self.state.surface.get_current_texture();
+        let texture = match status {
+            CurrentSurfaceTexture::Success(texture)
+            | CurrentSurfaceTexture::Suboptimal(texture) => texture,
+            _ => panic!(),
+        };
+
+        let view = texture
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
+        Ok(())
     }
 
-    pub fn render(&mut self, frame: Frame) -> Result<(), RendererError> {}
+    fn viewport(&self) -> Viewport {
+        Viewport::new(self.state.config.width, self.state.config.height)
+    }
 }

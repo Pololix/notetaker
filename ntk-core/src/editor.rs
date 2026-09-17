@@ -4,7 +4,10 @@ use crate::{
 };
 
 #[derive(Debug, thiserror::Error)]
-pub enum EditorError {}
+pub enum EditorError {
+    #[error("Failed to render current frame")]
+    Rendering,
+}
 
 #[derive(Debug)]
 pub struct Editor {
@@ -33,6 +36,10 @@ impl Editor {
     }
 
     pub fn render(&mut self) -> Frame {
-        todo!("render frame");
+        let mut new_frame = Frame::new(self.viewport);
+
+        self.workspace.render(&mut new_frame, self.mode);
+
+        new_frame
     }
 }
