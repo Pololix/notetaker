@@ -1,6 +1,5 @@
 pub use editor::{Editor, EditorError};
-pub use render::{Frame, Viewport};
+pub mod render;
 
 mod document;
 mod editor;
-mod render;

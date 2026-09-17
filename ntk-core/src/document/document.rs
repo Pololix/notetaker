@@ -1,7 +1,6 @@
 use crate::{
-    Frame,
     document::{UserMode, grid::Grid},
-    render::Rgba,
+    render::{Frame, Rgba},
 };
 use ropey::Rope;
 

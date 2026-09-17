@@ -1,6 +1,6 @@
 use crate::{
-    Frame,
     document::{UserMode, document::Document},
+    render::Frame,
 };
 
 #[derive(Debug, Default)]
