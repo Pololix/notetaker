@@ -104,8 +104,7 @@ impl Application {
 
     fn handle_resize(state: &AppState, size: PhysicalSize<u32>) {
         let viewport = Viewport::new(size.width, size.height);
-        state.renderer.resize(viewport);
-        state.editor.resize(viewport);
+        todo!("Handle resize");
     }
 
     fn handle_input(state: &AppState, input_event: WindowEvent) {

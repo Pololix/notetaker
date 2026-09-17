@@ -1,6 +1,7 @@
 use crate::{
-    Frame, Viewport,
-    document::{UserMode, Workspace},
+    document::UserMode,
+    event::{Event, EventBus},
+    render::Viewport,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -9,12 +10,11 @@ pub enum EditorError {
     Rendering,
 }
 
-#[derive(Debug)]
 pub struct Editor {
     mode: UserMode,
     viewport: Viewport,
 
-    workspace: Workspace,
+    event_bus: EventBus,
 }
 
 impl Editor {
@@ -23,23 +23,30 @@ impl Editor {
             mode: UserMode::default(),
             viewport,
 
-            workspace: Workspace::default(),
+            event_bus: EventBus::default(),
         }
     }
 
-    pub fn resize(&mut self, viewport: Viewport) {
-        if viewport.width == 0 || viewport.height == 0 {
-            return;
-        }
-
-        self.viewport = viewport;
+    pub fn push_event(&mut self, event: Event) {
+        // stream app-incoming events directly to the bus
+        self.event_bus.push_event(event);
     }
 
-    pub fn render(&mut self) -> Frame {
-        let mut new_frame = Frame::new(self.viewport);
+    pub fn update(&mut self) {
+        // commands produced by events are immediately processed
+        let events: Vec<_> = self.event_bus.get_events().collect();
+        for event in events {
+            let mut command_writer = self.event_bus.get_command_writer();
 
-        self.workspace.render(&mut new_frame, self.mode);
+            // handle events
+        }
 
-        new_frame
+        // events produced by commands are stored for the next iteration
+        let commands: Vec<_> = self.event_bus.get_commands().collect();
+        for command in commands {
+            let mut event_writer = self.event_bus.get_event_writer();
+
+            // process commands
+        }
     }
 }
