@@ -3,7 +3,10 @@ use crate::{
     text::{TextRenderer, TextRendererError},
 };
 use egui_wgpu::{Renderer as EguiRenderer, RendererOptions as EguiRendererOptions};
-use ntk_core::{Frame, Viewport};
+use ntk_core::{
+    CommandHandler,
+    render::{Frame, Viewport},
+};
 use std::sync::Arc;
 use wgpu::{CurrentSurfaceTexture, DisplayAndWindowHandle};
 
@@ -73,9 +76,5 @@ impl Renderer {
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         Ok(())
-    }
-
-    fn viewport(&self) -> Viewport {
-        Viewport::new(self.state.config.width, self.state.config.height)
     }
 }

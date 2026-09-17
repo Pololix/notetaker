@@ -1,6 +1,11 @@
+use ntk_common::{AppCommand, AppEvent};
+
 use crate::{
     document::{UserMode, Workspace},
-    event::{Event, EventBus},
+    event::{
+        CommandHandler, CommandWriter, EditorCommand, EditorEvent, EventBus, EventHandler,
+        EventWriter,
+    },
     render::Viewport,
 };
 
@@ -14,7 +19,7 @@ pub struct Editor {
     mode: UserMode,
     viewport: Viewport,
 
-    event_bus: EventBus,
+    event_bus: EventBus<EditorEvent, EditorCommand>,
 
     workspace: Workspace,
 }
@@ -29,11 +34,6 @@ impl Editor {
 
             workspace: Workspace::default(),
         }
-    }
-
-    pub fn push_event(&mut self, event: Event) {
-        // stream app-incoming events directly to the bus
-        self.event_bus.push_event(event);
     }
 
     pub fn update(&mut self, dt: f32) {
@@ -53,4 +53,12 @@ impl Editor {
             // process commands
         }
     }
+}
+
+impl EventHandler<AppEvent, AppCommand> for Editor {
+    fn on_event(&mut self, event: &AppEvent, cmd_writer: &mut CommandWriter<AppCommand>) {}
+}
+
+impl CommandHandler<AppEvent, AppCommand> for Editor {
+    fn on_command(&mut self, cmd: &AppCommand, event_writer: &mut EventWriter<AppEvent>) {}
 }

@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+# member deps
+ntk-common.workspace = true
+
 # deps
 ropey.workspace = true
 

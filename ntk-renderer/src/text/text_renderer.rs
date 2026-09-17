@@ -33,7 +33,7 @@ impl TextRenderer {
         })
     }
 
-    pub fn render_text(&mut self, text: &str) -> Vec {
+    pub fn render_text(&mut self, text: &str) {
         todo!("bear in mind grid occupancy")
     }
 }

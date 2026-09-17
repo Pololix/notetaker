@@ -1,3 +1,4 @@
+pub use user_mode::UserMode;
 pub use workspace::{Workspace, WorkspaceError};
 
 mod attachment;

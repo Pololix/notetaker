@@ -1,0 +1,6 @@
+[package]
+name = "ntk-common"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

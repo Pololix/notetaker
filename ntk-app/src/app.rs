@@ -1,15 +1,9 @@
-use egui::{Context, ViewportId};
-use egui_winit::State;
-use ntk_common::Viewport;
-use ntk_core::{Editor, Viewport};
+use ntk_common::{AppCommand, AppEvent};
+use ntk_core::{Editor, EventBus, render::Viewport};
 use ntk_renderer::Renderer;
-use std::{
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{sync::Arc, time::Instant};
 use winit::{
     application::ApplicationHandler,
-    dpi::PhysicalSize,
     event::WindowEvent,
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
     window::{Window, WindowId},
@@ -21,6 +15,7 @@ pub struct AppState {
 
     prev_frame: Instant,
 
+    event_bus: EventBus<AppEvent, AppCommand>,
     renderer: Renderer,
     editor: Editor,
 }
@@ -53,6 +48,7 @@ impl ApplicationHandler for Application {
 
             prev_frame: Instant::now(),
 
+            event_bus: EventBus::default(),
             renderer,
             editor,
         });
@@ -73,8 +69,8 @@ impl ApplicationHandler for Application {
 
         match event {
             // rendering
-            WindowEvent::RedrawRequested => Self::handle_redraw(state),
-            WindowEvent::Resized(size) => Self::handle_resize(state, size),
+            WindowEvent::RedrawRequested => {}
+            WindowEvent::Resized(size) => {}
 
             // input
 
@@ -97,7 +93,7 @@ impl ApplicationHandler for Application {
         let dt = (now - state.prev_frame).as_secs_f32();
         state.prev_frame = now;
 
-        state.editor.update(dt);
+        Self::update(state, dt);
     }
 }
 
@@ -112,19 +108,21 @@ impl Application {
             .expect("Failure during event loop execution");
     }
 
-    fn handle_redraw(state: &AppState) {
-        let frame = state.editor.render();
-        state.renderer.render(frame);
-    }
+    pub fn update(state: &mut AppState, dt: f32) {
+        // commands produced by events are immediately processed
+        let events = state.event_bus.get_events();
+        for event in events {
+            let mut command_writer = state.event_bus.get_command_writer();
 
-    fn handle_resize(state: &AppState, size: PhysicalSize<u32>) {
-        let viewport = Viewport::new(size.width, size.height);
-        todo!("Handle resize");
-    }
+            // process
+        }
 
-    fn handle_input(state: &AppState, input_event: WindowEvent) {
-        match event {
-            _ => {}
+        // events produced by commands are stored for the next iteration
+        let cmds = state.event_bus.get_commands();
+        for cmd in cmds {
+            let mut event_writer = state.event_bus.get_event_writer();
+
+            // process
         }
     }
 }
