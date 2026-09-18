@@ -1,8 +1,5 @@
-use crate::{
-    gpu_state::{GpuState, GpuStateError},
-    text::TextRendererError,
-};
-use ntk_common::{Frame, Viewport};
+use crate::gpu_state::{GpuState, GpuStateError};
+use ntk_common::{RenderCommand, RendererProtocol, Viewport};
 use std::sync::Arc;
 use wgpu::DisplayAndWindowHandle;
 
@@ -10,16 +7,21 @@ use wgpu::DisplayAndWindowHandle;
 pub enum RendererError {
     #[error("{0}")]
     GpuState(#[from] GpuStateError),
-
-    #[error("{0}")]
-    TextRendering(#[from] TextRendererError),
-
-    #[error("Failed to render frame due to an invalid viewport input")]
-    InvalidViewport,
 }
 
 pub struct Renderer {
     state: GpuState,
+}
+
+impl RendererProtocol for Renderer {
+    fn handle_commands(&mut self, cmds: &[RenderCommand]) {
+        for cmd in cmds {
+            match cmd {
+                RenderCommand::Resize(viewport) => self.resize(*viewport),
+                RenderCommand::Redraw(frame) => {}
+            }
+        }
+    }
 }
 
 impl Renderer {
@@ -32,7 +34,7 @@ impl Renderer {
         Ok(Self { state })
     }
 
-    pub fn resize(&mut self, viewport: Viewport) {
+    fn resize(&mut self, viewport: Viewport) {
         if viewport.width == 0 || viewport.height == 0 {
             return;
         }
@@ -42,9 +44,5 @@ impl Renderer {
         self.state
             .surface
             .configure(&self.state.device, &self.state.config);
-    }
-
-    pub fn render(&mut self, frame: Frame) -> Result<(), RendererError> {
-        todo!("Render");
     }
 }

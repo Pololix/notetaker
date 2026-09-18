@@ -1,6 +1,6 @@
-pub use event::PlatformEvent;
-pub use render::{Frame, Rgba, Viewport};
+pub use platform_event::PlatformEvent;
+pub use render::{Frame, RenderCommand, RendererProtocol, Rgba, Viewport};
 
-mod event;
 mod input;
+mod platform_event;
 mod render;

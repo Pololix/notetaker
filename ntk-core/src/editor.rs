@@ -2,13 +2,10 @@ use crate::{
     document::{UserMode, Workspace},
     event::EventBus,
 };
-use ntk_common::{PlatformEvent, Viewport};
+use ntk_common::{PlatformEvent, RenderCommand, Viewport};
 
 #[derive(Debug, thiserror::Error)]
-pub enum EditorError {
-    #[error("Failed to render current frame")]
-    Rendering,
-}
+pub enum EditorError {}
 
 pub struct Editor {
     mode: UserMode,
@@ -31,12 +28,6 @@ impl Editor {
         }
     }
 
-    pub fn handle_platform_event(&mut self, event: PlatformEvent) {
-        match event {
-            _ => {}
-        }
-    }
-
     pub fn update(&mut self, dt: f32) {
         // commands produced by events are immediately processed
         let events = self.event_bus.get_events();
@@ -52,6 +43,16 @@ impl Editor {
             let mut event_writer = self.event_bus.get_event_writer();
 
             // process commands
+        }
+    }
+
+    pub fn render(&mut self) -> Vec<RenderCommand> {
+        todo!("Fecth render commands");
+    }
+
+    pub fn handle_platform_event(&mut self, event: PlatformEvent) {
+        match event {
+            _ => {}
         }
     }
 }

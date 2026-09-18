@@ -1,17 +1,15 @@
-use ntk_common::{AppCommand, AppEvent, PlatformEvent};
-use ntk_core::{Editor, EventBus, render::Viewport};
+use ntk_common::{PlatformEvent, RendererProtocol, Viewport};
+use ntk_core::Editor;
 use ntk_renderer::Renderer;
 use std::{sync::Arc, time::Instant};
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
-    platform,
     window::{Window, WindowId},
 };
 
 pub struct AppState {
-    window_id: WindowId,
     window: Arc<Window>,
 
     frame_time: Instant,
@@ -44,7 +42,6 @@ impl ApplicationHandler for Application {
         let editor = Editor::new(viewport);
 
         self.0 = Some(AppState {
-            window_id: window.id(),
             window,
 
             frame_time: Instant::now(),
@@ -64,19 +61,33 @@ impl ApplicationHandler for Application {
         let Some(state) = &mut self.0 else {
             return;
         };
-        if state.window_id != window_id {
+        if state.window.id() != window_id {
             return;
         }
 
         match event {
             // rendering
-            WindowEvent::RedrawRequested => {}
-            WindowEvent::Resized(size) => {}
+            WindowEvent::RedrawRequested => state.frame_events.push(PlatformEvent::RedrawRequested),
+            WindowEvent::Resized(size) => {
+                state
+                    .frame_events
+                    .push(PlatformEvent::WindowResized(Viewport::new(
+                        size.width,
+                        size.height,
+                    )))
+            }
 
             // input
 
             // closing
             WindowEvent::CloseRequested => {
+                for event in state.frame_events.drain(..) {
+                    state.editor.handle_platform_event(event);
+                }
+
+                state
+                    .editor
+                    .handle_platform_event(PlatformEvent::ExitRequested);
                 event_loop.exit();
             }
 
@@ -90,15 +101,19 @@ impl ApplicationHandler for Application {
             return;
         };
 
+        // fecth frame timestamp
         let now = Instant::now();
         let dt = (now - state.frame_time).as_secs_f32();
         state.frame_time = now;
 
-        for event in self.frame_events.drain(..) {
+        // handle platform events
+        for event in state.frame_events.drain(..) {
             state.editor.handle_platform_event(event);
         }
 
+        // update core and render its state
         state.editor.update(dt);
+        state.renderer.handle_commands(&state.editor.render());
     }
 }
 
