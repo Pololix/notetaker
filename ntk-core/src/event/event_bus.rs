@@ -1,69 +1,59 @@
-pub struct EventBus<E, C> {
-    event_queue: Vec<E>,
-    event_handlers: Vec<Box<dyn EventHandler<E, C>>>,
-    cmd_queue: Vec<C>,
-    cmd_handlers: Vec<Box<dyn CommandHandler<E, C>>>,
+use crate::event::{Command, Event};
+
+#[derive(Debug, Default)]
+pub struct EventBus {
+    event_queue: Vec<Event>,
+    cmd_queue: Vec<Command>,
 }
 
-impl<E, C> Default for EventBus<E, C> {
-    fn default() -> Self {
-        Self {
-            event_queue: Vec::new(),
-            event_handlers: Vec::new(),
-            cmd_queue: Vec::new(),
-            cmd_handlers: Vec::new(),
-        }
-    }
-}
-
-impl<E, C> EventBus<E, C> {
-    pub fn push_event(&mut self, event: E) {
+impl EventBus {
+    pub fn push_event(&mut self, event: Event) {
         self.event_queue.push(event);
     }
 
-    pub fn push_command(&mut self, command: C) {
+    pub fn push_command(&mut self, command: Command) {
         self.cmd_queue.push(command);
     }
 
-    pub fn get_event_writer(&mut self) -> EventWriter<'_, E> {
+    pub fn get_event_writer(&mut self) -> EventWriter<'_> {
         EventWriter(&mut self.event_queue)
     }
 
-    pub fn get_command_writer(&mut self) -> CommandWriter<'_, C> {
+    pub fn get_command_writer(&mut self) -> CommandWriter<'_> {
         CommandWriter(&mut self.cmd_queue)
     }
 
-    pub fn get_events(&mut self) -> Vec<E> {
+    pub fn get_events(&mut self) -> Vec<Event> {
         self.event_queue.drain(..).collect()
     }
 
-    pub fn get_commands(&mut self) -> Vec<C> {
+    pub fn get_commands(&mut self) -> Vec<Command> {
         self.cmd_queue.drain(..).collect()
     }
 }
 
-pub trait EventHandler<E, C> {
-    fn on_event(&mut self, event: &E, cmd_writer: &mut CommandWriter<C>);
+pub trait EventHandler {
+    fn on_event(&mut self, event: &Event, cmd_writer: &mut CommandWriter);
 }
 
-pub trait CommandHandler<E, C> {
-    fn on_command(&mut self, cmd: &C, event_writer: &mut EventWriter<E>);
+pub trait CommandHandler {
+    fn on_command(&mut self, cmd: &Command, event_writer: &mut EventWriter);
 }
 
 #[derive(Debug)]
-pub struct EventWriter<'a, E>(&'a mut Vec<E>);
+pub struct EventWriter<'a>(&'a mut Vec<Event>);
 
-impl<E> EventWriter<'_, E> {
-    pub fn push(&mut self, event: E) {
+impl EventWriter<'_> {
+    pub fn push(&mut self, event: Event) {
         self.0.push(event);
     }
 }
 
 #[derive(Debug)]
-pub struct CommandWriter<'a, C>(&'a mut Vec<C>);
+pub struct CommandWriter<'a>(&'a mut Vec<Command>);
 
-impl<C> CommandWriter<'_, C> {
-    pub fn push(&mut self, cmd: C) {
+impl CommandWriter<'_> {
+    pub fn push(&mut self, cmd: Command) {
         self.0.push(cmd);
     }
 }

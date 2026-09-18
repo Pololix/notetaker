@@ -1,2 +1,2 @@
 #[derive(Debug, Clone)]
-pub enum EditorEvent {}
+pub enum Event {}

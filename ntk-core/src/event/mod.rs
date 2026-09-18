@@ -1,5 +1,5 @@
-pub use command::EditorCommand;
-pub use event::EditorEvent;
+pub use command::Command;
+pub use event::Event;
 pub use event_bus::{CommandHandler, CommandWriter, EventBus, EventHandler, EventWriter};
 
 mod command;

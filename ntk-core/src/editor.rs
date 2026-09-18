@@ -1,13 +1,8 @@
-use ntk_common::{AppCommand, AppEvent};
-
 use crate::{
     document::{UserMode, Workspace},
-    event::{
-        CommandHandler, CommandWriter, EditorCommand, EditorEvent, EventBus, EventHandler,
-        EventWriter,
-    },
-    render::Viewport,
+    event::EventBus,
 };
+use ntk_common::{PlatformEvent, Viewport};
 
 #[derive(Debug, thiserror::Error)]
 pub enum EditorError {
@@ -19,7 +14,7 @@ pub struct Editor {
     mode: UserMode,
     viewport: Viewport,
 
-    event_bus: EventBus<EditorEvent, EditorCommand>,
+    event_bus: EventBus,
 
     workspace: Workspace,
 }
@@ -33,6 +28,12 @@ impl Editor {
             event_bus: EventBus::default(),
 
             workspace: Workspace::default(),
+        }
+    }
+
+    pub fn handle_platform_event(&mut self, event: PlatformEvent) {
+        match event {
+            _ => {}
         }
     }
 
@@ -53,12 +54,4 @@ impl Editor {
             // process commands
         }
     }
-}
-
-impl EventHandler<AppEvent, AppCommand> for Editor {
-    fn on_event(&mut self, event: &AppEvent, cmd_writer: &mut CommandWriter<AppCommand>) {}
-}
-
-impl CommandHandler<AppEvent, AppCommand> for Editor {
-    fn on_command(&mut self, cmd: &AppCommand, event_writer: &mut EventWriter<AppEvent>) {}
 }

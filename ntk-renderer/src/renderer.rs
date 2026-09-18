@@ -1,14 +1,10 @@
 use crate::{
     gpu_state::{GpuState, GpuStateError},
-    text::{TextRenderer, TextRendererError},
+    text::TextRendererError,
 };
-use egui_wgpu::{Renderer as EguiRenderer, RendererOptions as EguiRendererOptions};
-use ntk_core::{
-    CommandHandler,
-    render::{Frame, Viewport},
-};
+use ntk_common::{Frame, Viewport};
 use std::sync::Arc;
-use wgpu::{CurrentSurfaceTexture, DisplayAndWindowHandle};
+use wgpu::DisplayAndWindowHandle;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RendererError {
@@ -24,9 +20,6 @@ pub enum RendererError {
 
 pub struct Renderer {
     state: GpuState,
-
-    text_renderer: TextRenderer,
-    egui_renderer: EguiRenderer,
 }
 
 impl Renderer {
@@ -36,19 +29,7 @@ impl Renderer {
     ) -> Result<Self, RendererError> {
         let state = GpuState::new(target, viewport)?;
 
-        let text_renderer = TextRenderer::new(&state.device)?;
-        let egui_renderer = EguiRenderer::new(
-            &state.device,
-            state.config.format,
-            EguiRendererOptions::default(),
-        );
-
-        Ok(Self {
-            state,
-
-            text_renderer,
-            egui_renderer,
-        })
+        Ok(Self { state })
     }
 
     pub fn resize(&mut self, viewport: Viewport) {
@@ -64,17 +45,6 @@ impl Renderer {
     }
 
     pub fn render(&mut self, frame: Frame) -> Result<(), RendererError> {
-        let status = self.state.surface.get_current_texture();
-        let texture = match status {
-            CurrentSurfaceTexture::Success(texture)
-            | CurrentSurfaceTexture::Suboptimal(texture) => texture,
-            _ => panic!(),
-        };
-
-        let view = texture
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-
-        Ok(())
+        todo!("Render");
     }
 }

@@ -1,4 +1,4 @@
-use ntk_common::{AppCommand, AppEvent};
+use ntk_common::{AppCommand, AppEvent, PlatformEvent};
 use ntk_core::{Editor, EventBus, render::Viewport};
 use ntk_renderer::Renderer;
 use std::{sync::Arc, time::Instant};
@@ -6,6 +6,7 @@ use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
+    platform,
     window::{Window, WindowId},
 };
 
@@ -13,9 +14,9 @@ pub struct AppState {
     window_id: WindowId,
     window: Arc<Window>,
 
-    prev_frame: Instant,
+    frame_time: Instant,
+    frame_events: Vec<PlatformEvent>,
 
-    event_bus: EventBus<AppEvent, AppCommand>,
     renderer: Renderer,
     editor: Editor,
 }
@@ -46,9 +47,9 @@ impl ApplicationHandler for Application {
             window_id: window.id(),
             window,
 
-            prev_frame: Instant::now(),
+            frame_time: Instant::now(),
+            frame_events: Vec::new(),
 
-            event_bus: EventBus::default(),
             renderer,
             editor,
         });
@@ -90,10 +91,14 @@ impl ApplicationHandler for Application {
         };
 
         let now = Instant::now();
-        let dt = (now - state.prev_frame).as_secs_f32();
-        state.prev_frame = now;
+        let dt = (now - state.frame_time).as_secs_f32();
+        state.frame_time = now;
 
-        Self::update(state, dt);
+        for event in self.frame_events.drain(..) {
+            state.editor.handle_platform_event(event);
+        }
+
+        state.editor.update(dt);
     }
 }
 
@@ -106,23 +111,5 @@ impl Application {
         event_loop
             .run_app(&mut app)
             .expect("Failure during event loop execution");
-    }
-
-    pub fn update(state: &mut AppState, dt: f32) {
-        // commands produced by events are immediately processed
-        let events = state.event_bus.get_events();
-        for event in events {
-            let mut command_writer = state.event_bus.get_command_writer();
-
-            // process
-        }
-
-        // events produced by commands are stored for the next iteration
-        let cmds = state.event_bus.get_commands();
-        for cmd in cmds {
-            let mut event_writer = state.event_bus.get_event_writer();
-
-            // process
-        }
     }
 }
