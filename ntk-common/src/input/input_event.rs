@@ -1,2 +1,2 @@
 #[derive(Debug, Clone)]
-pub enum AppCommand {}
+pub enum InputEvent {}
