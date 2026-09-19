@@ -1,9 +1,12 @@
+use ntk_common::RenderCommand;
+
 use crate::event::{Command, Event};
 
 #[derive(Debug, Default)]
 pub struct EventBus {
     event_queue: Vec<Event>,
     cmd_queue: Vec<Command>,
+    render_cmd_queue: Vec<RenderCommand>,
 }
 
 impl EventBus {
@@ -11,8 +14,12 @@ impl EventBus {
         self.event_queue.push(event);
     }
 
-    pub fn push_command(&mut self, command: Command) {
-        self.cmd_queue.push(command);
+    pub fn push_command(&mut self, cmd: Command) {
+        self.cmd_queue.push(cmd);
+    }
+
+    pub fn push_render_command(&mut self, cmd: RenderCommand) {
+        self.render_cmd_queue.push(cmd);
     }
 
     pub fn get_event_writer(&mut self) -> EventWriter<'_> {
@@ -23,12 +30,20 @@ impl EventBus {
         CommandWriter(&mut self.cmd_queue)
     }
 
+    pub fn get_render_command_writer(&mut self) -> RenderCommandWriter<'_> {
+        RenderCommandWriter(&mut self.render_cmd_queue)
+    }
+
     pub fn get_events(&mut self) -> Vec<Event> {
         self.event_queue.drain(..).collect()
     }
 
     pub fn get_commands(&mut self) -> Vec<Command> {
         self.cmd_queue.drain(..).collect()
+    }
+
+    pub fn get_render_commands(&mut self) -> Vec<RenderCommand> {
+        self.render_cmd_queue.drain(..).collect()
     }
 }
 
@@ -54,6 +69,15 @@ pub struct CommandWriter<'a>(&'a mut Vec<Command>);
 
 impl CommandWriter<'_> {
     pub fn push(&mut self, cmd: Command) {
+        self.0.push(cmd);
+    }
+}
+
+#[derive(Debug)]
+pub struct RenderCommandWriter<'a>(&'a mut Vec<RenderCommand>);
+
+impl RenderCommandWriter<'_> {
+    pub fn push(&mut self, cmd: RenderCommand) {
         self.0.push(cmd);
     }
 }

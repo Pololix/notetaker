@@ -1,10 +1,11 @@
-use crate::{Frame, Viewport};
+use crate::Viewport;
 
 pub trait RendererProtocol {
-    fn handle_commands(&mut self, cmds: &[RenderCommand]);
+    fn render(&mut self, cmds: &[RenderCommand]);
 }
 
+#[derive(Debug, Clone, Copy)]
 pub enum RenderCommand {
     Resize(Viewport),
-    Redraw(Frame),
+    RedrawFrame,
 }

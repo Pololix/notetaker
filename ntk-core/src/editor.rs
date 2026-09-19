@@ -29,30 +29,40 @@ impl Editor {
     }
 
     pub fn update(&mut self, dt: f32) {
+        let mut cmd_writer = self.event_bus.get_render_command_writer();
+
         // commands produced by events are immediately processed
         let events = self.event_bus.get_events();
+        let mut cmd_writer = self.event_bus.get_command_writer();
         for event in events {
-            let mut command_writer = self.event_bus.get_command_writer();
 
             // handle events
         }
 
         // events produced by commands are stored for the next iteration
         let cmds = self.event_bus.get_commands();
+        let mut event_writer = self.event_bus.get_event_writer();
         for cmd in cmds {
-            let mut event_writer = self.event_bus.get_event_writer();
 
             // process commands
         }
     }
 
     pub fn render(&mut self) -> Vec<RenderCommand> {
-        todo!("Fecth render commands");
+        self.event_bus.get_render_commands()
     }
 
     pub fn handle_platform_event(&mut self, event: PlatformEvent) {
         match event {
-            _ => {}
+            PlatformEvent::WindowResized(viewport) => self
+                .event_bus
+                .push_render_command(RenderCommand::Resize(viewport)),
+
+            PlatformEvent::RedrawRequested => self
+                .event_bus
+                .push_render_command(RenderCommand::RedrawFrame),
+
+            PlatformEvent::ExitRequested => {}
         }
     }
 }

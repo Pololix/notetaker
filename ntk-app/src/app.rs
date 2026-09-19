@@ -113,7 +113,7 @@ impl ApplicationHandler for Application {
 
         // update core and render its state
         state.editor.update(dt);
-        state.renderer.handle_commands(&state.editor.render());
+        state.renderer.render(&state.editor.render());
     }
 }
 

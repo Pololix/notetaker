@@ -6,7 +6,6 @@ edition.workspace = true
 [dependencies]
 # member deps
 ntk-common.workspace = true
-ntk-core.workspace = true
 
 # deps
 egui.workspace = true

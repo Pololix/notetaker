@@ -77,6 +77,16 @@ impl GpuState {
         })
     }
 
+    pub fn resize(&mut self, viewport: Viewport) {
+        if viewport.width == 0 || viewport.height == 0 {
+            return;
+        }
+
+        self.config.width = viewport.width;
+        self.config.height = viewport.height;
+        self.surface.configure(&self.device, &self.config);
+    }
+
     pub fn viewport(&mut self) -> Viewport {
         Viewport {
             width: self.config.width,
