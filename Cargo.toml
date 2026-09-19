@@ -1,7 +1,7 @@
 [workspace]
 resolver = "3"
 
-members = ["ntk-app", "ntk-common", "ntk-core", "ntk-renderer"]
+members = ["ntk-app", "ntk-core", "ntk-renderer"]
 
 [workspace.package]
 version = "0.1.0"
@@ -9,7 +9,6 @@ edition = "2024"
 
 [workspace.dependencies]
 # member deps
-ntk-common.path = "ntk-common"
 ntk-core.path = "ntk-core"
 ntk-renderer.path = "ntk-renderer"
 

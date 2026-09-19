@@ -1,4 +1,4 @@
-use crate::Viewport;
+use crate::render::Viewport;
 
 pub trait RendererProtocol {
     fn render(&mut self, cmds: &[RenderCommand]);

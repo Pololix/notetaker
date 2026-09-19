@@ -1,5 +1,8 @@
-use ntk_common::{PlatformEvent, RendererProtocol, Viewport};
-use ntk_core::Editor;
+use ntk_core::{
+    Editor,
+    platform::PlatformEvent,
+    render::{RendererProtocol, Viewport},
+};
 use ntk_renderer::Renderer;
 use std::{sync::Arc, time::Instant};
 use winit::{

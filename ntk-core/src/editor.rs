@@ -1,8 +1,9 @@
 use crate::{
     document::{UserMode, Workspace},
     event::EventBus,
+    platform::PlatformEvent,
+    render::{RenderCommand, Viewport},
 };
-use ntk_common::{PlatformEvent, RenderCommand, Viewport};
 
 #[derive(Debug, thiserror::Error)]
 pub enum EditorError {}

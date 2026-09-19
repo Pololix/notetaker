@@ -1,4 +1,4 @@
-use crate::Viewport;
+use crate::render::Viewport;
 
 #[derive(Debug, Clone)]
 pub enum PlatformEvent {

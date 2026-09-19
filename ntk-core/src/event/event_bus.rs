@@ -1,6 +1,7 @@
-use ntk_common::RenderCommand;
-
-use crate::event::{Command, Event};
+use crate::{
+    event::{Command, Event},
+    render::RenderCommand,
+};
 
 #[derive(Debug, Default)]
 pub struct EventBus {

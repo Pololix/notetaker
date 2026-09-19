@@ -1415,21 +1415,15 @@ version = "0.1.0"
 dependencies = [
  "egui",
  "egui-winit",
- "ntk-common",
  "ntk-core",
  "ntk-renderer",
  "winit",
 ]
 
 [[package]]
-name = "ntk-common"
-version = "0.1.0"
-
-[[package]]
 name = "ntk-core"
 version = "0.1.0"
 dependencies = [
- "ntk-common",
  "ropey",
  "thiserror 2.0.20",
 ]
@@ -1442,7 +1436,7 @@ dependencies = [
  "egui",
  "egui-wgpu",
  "log",
- "ntk-common",
+ "ntk-core",
  "pollster",
  "thiserror 2.0.20",
  "wgpu",

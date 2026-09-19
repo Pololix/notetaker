@@ -1,4 +1,4 @@
-use ntk_common::Viewport;
+use ntk_core::render::Viewport;
 use std::sync::Arc;
 use wgpu::DisplayAndWindowHandle;
 

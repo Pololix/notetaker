@@ -1,5 +1,5 @@
 use crate::gpu_state::{GpuState, GpuStateError};
-use ntk_common::{Frame, RenderCommand, RendererProtocol, Viewport};
+use ntk_core::render::{Frame, RenderCommand, RendererProtocol, Viewport};
 use std::sync::Arc;
 use wgpu::DisplayAndWindowHandle;
 

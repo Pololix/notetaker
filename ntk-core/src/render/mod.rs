@@ -1,4 +1,4 @@
-pub use color::Rgba;
+pub use color::Color;
 pub use frame::Frame;
 pub use renderer::{RenderCommand, RendererProtocol};
 pub use viewport::Viewport;
