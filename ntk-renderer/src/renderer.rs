@@ -1,9 +1,9 @@
 use crate::{
-    frame::Frame,
     gpu_state::{GpuState, GpuStateError},
     invalidation::RenderInvalidation,
+    primitive::{Frame, ShapeRenderer},
 };
-use ntk_core::render::{RenderCommand, RenderProtocol, Viewport};
+use ntk_core::render::{RenderCommand, RenderProtocol, Viewport, types::Rect};
 use std::sync::Arc;
 use wgpu::DisplayAndWindowHandle;
 
@@ -16,6 +16,8 @@ pub enum RendererError {
 pub struct Renderer {
     state: GpuState,
     frame: Frame,
+
+    shapes: ShapeRenderer,
 }
 
 impl RenderProtocol for Renderer {
@@ -27,16 +29,28 @@ impl RenderProtocol for Renderer {
             match cmd {
                 RenderCommand::Resize(viewport) => self.state.resize(*viewport),
                 RenderCommand::RedrawFrame => invalidation.full(),
+                RenderCommand::ClearFrame => {
+                    self.frame.clear();
+                    invalidation.full();
+                }
 
-                RenderCommand::Quad { id, rect, color } => {}
+                RenderCommand::Quad { id, rect, color } => {
+                    let quad = self.shapes.plain_quad(*rect, *color);
+                    self.frame.upload(*id, &[quad], &mut invalidation);
 
-                RenderCommand::DocumentText {
-                    id,
-                    rect,
-                    text,
-                    color,
-                } => {}
+                    invalidation.partial(*rect);
+                }
+
+                RenderCommand::DocumentGrid { .. } => {}
+
+                RenderCommand::DocumentText { .. } => {}
             }
+        }
+
+        match invalidation {
+            RenderInvalidation::Empty => {}
+            RenderInvalidation::Partial(rect) => self.draw_partial(rect),
+            RenderInvalidation::Full => self.draw_full(),
         }
     }
 }
@@ -51,6 +65,12 @@ impl Renderer {
         Ok(Self {
             state,
             frame: Frame::default(),
+
+            shapes: ShapeRenderer::new(),
         })
     }
+
+    fn draw_partial(&self, rect: Rect) {}
+
+    fn draw_full(&self) {}
 }

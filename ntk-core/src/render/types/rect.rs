@@ -18,4 +18,11 @@ impl Rect {
             height: (self.y + self.height).max(other.y + other.height) - y,
         }
     }
+
+    pub fn intersects(&self, other: Self) -> bool {
+        self.x < other.x + other.width
+            && self.x + self.width > other.x
+            && self.y < other.y + other.height
+            && self.y + self.height > other.y
+    }
 }

@@ -44,6 +44,34 @@ impl DocumentView {
         view
     }
 
+    pub fn set_rect(&mut self, rect: Rect) {
+        if self.rect == rect {
+            return;
+        }
+
+        self.rect = rect;
+        self.update_view();
+        self.dirty = true;
+    }
+
+    pub fn set_zoom(&mut self, delta: f32) {
+        let zoom = (self.zoom + delta).max(0.1);
+        if self.zoom == zoom {
+            return;
+        }
+
+        self.zoom = zoom;
+        self.update_view();
+        self.dirty = true;
+    }
+
+    pub fn set_scroll(&mut self, delta_x: f32, delta_y: f32) {
+        self.scroll_x += delta_x;
+        self.scroll_y += delta_y;
+        // self.update_view();
+        // self.dirty = true;
+    }
+
     pub fn render(&mut self, cmd_writer: &mut RenderCommandWriter) {
         if !self.dirty {
             return;
@@ -82,27 +110,6 @@ impl DocumentView {
         });
 
         self.dirty = false;
-    }
-
-    pub fn set_rect(&mut self, rect: Rect) {
-        if self.rect == rect {
-            return;
-        }
-
-        self.rect = rect;
-        self.update_view();
-        self.dirty = true;
-    }
-
-    pub fn set_zoom(&mut self, delta: f32) {
-        let zoom = (self.zoom + delta).max(0.1);
-        if self.zoom == zoom {
-            return;
-        }
-
-        self.zoom = zoom;
-        self.update_view();
-        self.dirty = true;
     }
 
     fn update_view(&mut self) {

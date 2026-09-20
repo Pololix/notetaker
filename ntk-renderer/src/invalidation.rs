@@ -1,6 +1,6 @@
 use ntk_core::render::types::Rect;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum RenderInvalidation {
     Empty,
     Partial(Rect),
