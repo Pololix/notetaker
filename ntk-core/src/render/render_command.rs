@@ -6,6 +6,7 @@ use crate::render::{Viewport, types::Rect};
 pub enum RenderCommand {
     Resize(Viewport),
     RedrawFrame,
+    ClearFrame,
 
     Quad {
         id: RenderId,
@@ -29,5 +30,8 @@ pub enum RenderCommand {
         color: Color,
 
         text: String,
+        grid_occupancy: Vec<usize>,
+        grid_width: u32,
+        cell_size: f32,
     },
 }

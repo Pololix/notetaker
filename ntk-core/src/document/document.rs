@@ -1,13 +1,13 @@
-use crate::document::{attachment::Attachment, cell_map::CellMap};
+use crate::document::attachment::Attachment;
 use ropey::Rope;
 
 #[derive(Debug, Clone)]
 pub struct Document {
     text: Rope,
 
-    cell_size: f32,
-    grid_width: u32,
-    grid_height: u32,
+    pub cell_size: f32,
+    pub grid_width: u32,
+    pub grid_height: u32,
     grid_attachments: Vec<Attachment>,
 }
 
@@ -39,8 +39,9 @@ impl Default for Document {
 }
 
 impl Document {
-    pub fn logical_width(&self) -> f32 {
-        self.cell_size * self.grid_width
+    pub fn occupied_cells(&self) -> Vec<usize> {
+        for attachment in &self.grid_attachments {}
+        vec![]
     }
 
     pub fn text(&self) -> String {

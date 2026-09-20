@@ -2,7 +2,7 @@ use crate::{
     document::document::Document,
     event::RenderCommandWriter,
     render::{
-        RenderCommand, RenderId, RenderIdAllocator,
+        RenderCommand, RenderId,
         types::{Color, Rect},
     },
 };
@@ -21,14 +21,12 @@ pub struct DocumentView {
     scroll_y: f32,
     zoom: f32,
 
-    quad_id: RenderId,
-    grid_id: RenderId,
-    text_id: RenderId,
+    render_id: RenderId,
     dirty: bool,
 }
 
 impl DocumentView {
-    pub fn new(rect: Rect, ids: &mut RenderIdAllocator) -> Self {
+    pub fn new(rect: Rect, render_id: RenderId) -> Self {
         let mut view = Self {
             document: Document::default(),
             rect,
@@ -38,9 +36,7 @@ impl DocumentView {
             scroll_y: 0.0,
             zoom: 1.0,
 
-            quad_id: ids.next(),
-            grid_id: ids.next(),
-            text_id: ids.next(),
+            render_id,
             dirty: true,
         };
 
@@ -54,7 +50,7 @@ impl DocumentView {
         }
 
         cmd_writer.push(RenderCommand::Quad {
-            id: self.quad_id,
+            id: self.render_id,
             rect: Rect {
                 x: self.doc_rect.x - DOCUMENT_MARGIN,
                 y: self.doc_rect.y - DOCUMENT_MARGIN,
@@ -65,20 +61,24 @@ impl DocumentView {
         });
 
         cmd_writer.push(RenderCommand::DocumentGrid {
-            id: self.grid_id,
+            id: self.render_id,
             rect: self.doc_rect,
             color: Color::GREY,
 
             x_offset: self.scroll_x,
             y_offset: self.scroll_y,
-            cell_size: CELL_SIZE * self.zoom,
+            cell_size: self.document.cell_size * self.zoom,
         });
 
         cmd_writer.push(RenderCommand::DocumentText {
-            id: self.text_id,
+            id: self.render_id,
             rect: self.doc_rect,
-            text: self.document.text(),
             color: Color::WHITE,
+
+            text: self.document.text(),
+            grid_occupancy: self.document.occupied_cells(),
+            grid_width: self.document.grid_width,
+            cell_size: self.document.cell_size,
         });
 
         self.dirty = false;
@@ -119,7 +119,8 @@ impl DocumentView {
 
         // if the document with the applied zoom or due to viewport is bigger than it can be it is
         // clamped
-        let width = (self.document.logical_width() * self.zoom).min(max_width);
+        let width =
+            (self.document.cell_size * self.document.grid_width as f32 * self.zoom).min(max_width);
 
         self.doc_rect = Rect {
             x: inner.x + DOCUMENT_MARGIN + (max_width - width) * 0.5,
