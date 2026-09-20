@@ -8,9 +8,7 @@ edition.workspace = true
 ntk-core.workspace = true
 
 # deps
-egui.workspace = true
 wgpu.workspace = true
-egui-wgpu.workspace = true
 cosmic-text.workspace = true
 
 # helper deps

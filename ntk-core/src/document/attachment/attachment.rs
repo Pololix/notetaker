@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Attachment {
     row_start: u32,
     col_start: u32,
@@ -8,7 +8,7 @@ pub struct Attachment {
     ty: AttachmentType,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AttachmentType {
     Filler,
 }

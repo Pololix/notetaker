@@ -1,11 +1,35 @@
-use crate::document::document::Document;
+use crate::{
+    document::document_view::DocumentView,
+    event::RenderCommandWriter,
+    render::{RenderIdAllocator, Viewport, types::Rect},
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum WorkspaceError {}
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Workspace {
-    document: Document,
+    render_ids: RenderIdAllocator,
+    view: DocumentView,
 }
 
-impl Workspace {}
+impl Workspace {
+    pub fn new(viewport: Viewport) -> Self {
+        let render_ids = RenderIdAllocator::default();
+        let view = DocumentView::new(Rect {
+                x: 0.0,
+                y: 0.0,
+                width: viewport.width as f32,
+                height: viewport.height as f32,
+            }, &mut render_ids);
+        
+ 
+        Self {
+            render_ids,
+            view
+            }
+
+    pub fn render(&mut self, cmd_writer: &mut RenderCommandWriter) {
+        self.view.render(cmd_writer);
+    }
+}

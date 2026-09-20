@@ -1,5 +1,9 @@
-use crate::gpu_state::{GpuState, GpuStateError};
-use ntk_core::render::{Frame, RenderCommand, RendererProtocol, Viewport};
+use crate::{
+    frame::Frame,
+    gpu_state::{GpuState, GpuStateError},
+    invalidation::RenderInvalidation,
+};
+use ntk_core::render::{RenderCommand, RenderProtocol, Viewport};
 use std::sync::Arc;
 use wgpu::DisplayAndWindowHandle;
 
@@ -14,14 +18,24 @@ pub struct Renderer {
     frame: Frame,
 }
 
-impl RendererProtocol for Renderer {
+impl RenderProtocol for Renderer {
     fn render(&mut self, cmds: &[RenderCommand]) {
-        let mut redraw = false;
+        let mut invalidation = RenderInvalidation::Empty;
 
+        // FIFO processing
         for cmd in cmds {
             match cmd {
                 RenderCommand::Resize(viewport) => self.state.resize(*viewport),
-                RenderCommand::RedrawFrame => redraw = true,
+                RenderCommand::RedrawFrame => invalidation.full(),
+
+                RenderCommand::Quad { id, rect, color } => {}
+
+                RenderCommand::DocumentText {
+                    id,
+                    rect,
+                    text,
+                    color,
+                } => {}
             }
         }
     }

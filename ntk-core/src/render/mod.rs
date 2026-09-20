@@ -1,9 +1,9 @@
-pub use color::Color;
-pub use frame::Frame;
-pub use renderer::{RenderCommand, RendererProtocol};
+pub use render_command::RenderCommand;
+pub use render_protocol::{RenderId, RenderIdAllocator, RenderProtocol};
 pub use viewport::Viewport;
 
-mod color;
-mod frame;
-mod renderer;
+pub mod types;
+
+mod render_command;
+mod render_protocol;
 mod viewport;

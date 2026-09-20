@@ -25,13 +25,25 @@ impl Editor {
 
             event_bus: EventBus::default(),
 
-            workspace: Workspace::default(),
+            workspace: Workspace::new(viewport),
+        }
+    }
+
+    pub fn handle_platform_event(&mut self, event: PlatformEvent) {
+        match event {
+            PlatformEvent::WindowResized(viewport) => self
+                .event_bus
+                .push_render_command(RenderCommand::Resize(viewport)),
+
+            PlatformEvent::RedrawRequested => self
+                .event_bus
+                .push_render_command(RenderCommand::RedrawFrame),
+
+            PlatformEvent::ExitRequested => {}
         }
     }
 
     pub fn update(&mut self, dt: f32) {
-        let mut cmd_writer = self.event_bus.get_render_command_writer();
-
         // commands produced by events are immediately processed
         let events = self.event_bus.get_events();
         let mut cmd_writer = self.event_bus.get_command_writer();
@@ -50,20 +62,10 @@ impl Editor {
     }
 
     pub fn render(&mut self) -> Vec<RenderCommand> {
+        let mut cmd_writer = self.event_bus.get_render_command_writer();
+
+        self.workspace.render(&mut cmd_writer);
+
         self.event_bus.get_render_commands()
-    }
-
-    pub fn handle_platform_event(&mut self, event: PlatformEvent) {
-        match event {
-            PlatformEvent::WindowResized(viewport) => self
-                .event_bus
-                .push_render_command(RenderCommand::Resize(viewport)),
-
-            PlatformEvent::RedrawRequested => self
-                .event_bus
-                .push_render_command(RenderCommand::RedrawFrame),
-
-            PlatformEvent::ExitRequested => {}
-        }
     }
 }

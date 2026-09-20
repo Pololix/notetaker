@@ -9,6 +9,4 @@ ntk-core.workspace = true
 ntk-renderer.workspace = true
 
 # deps
-egui.workspace = true
 winit.workspace = true
-egui-winit.workspace = true

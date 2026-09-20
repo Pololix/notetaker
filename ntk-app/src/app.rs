@@ -1,7 +1,7 @@
 use ntk_core::{
     Editor,
     platform::PlatformEvent,
-    render::{RendererProtocol, Viewport},
+    render::{RenderProtocol, Viewport},
 };
 use ntk_renderer::Renderer;
 use std::{sync::Arc, time::Instant};
