@@ -1,7 +1,7 @@
 pub use frame::Frame;
-pub use raw_quad::RawQuad;
-pub use shape_renderer::ShapeRenderer;
+pub use quad::Quad;
 
 mod frame;
-mod raw_quad;
-mod shape_renderer;
+mod invalidation;
+mod quad;
+mod uv;

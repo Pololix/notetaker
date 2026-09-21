@@ -7,6 +7,12 @@ pub enum RenderInvalidation {
     Full,
 }
 
+impl Default for RenderInvalidation {
+    fn default() -> Self {
+        Self::Empty
+    }
+}
+
 impl RenderInvalidation {
     pub fn partial(&mut self, new: Rect) {
         match self {

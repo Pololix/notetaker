@@ -34,4 +34,6 @@ pub enum RenderCommand {
         grid_width: u32,
         cell_size: f32,
     },
+
+    Remove(RenderId),
 }

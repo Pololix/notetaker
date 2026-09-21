@@ -1,10 +1,9 @@
 use crate::{
     gpu_state::{GpuState, GpuStateError},
-    invalidation::RenderInvalidation,
-    primitive::{Frame, ShapeRenderer},
+    primitive::{Frame, RawQuad, ShapeRenderer},
 };
-use ntk_core::render::{RenderCommand, RenderProtocol, Viewport, types::Rect};
-use std::sync::Arc;
+use ntk_core::render::{RenderCommand, RenderId, RenderProtocol, Viewport};
+use std::{collections::HashMap, sync::Arc};
 use wgpu::DisplayAndWindowHandle;
 
 #[derive(Debug, thiserror::Error)]
@@ -18,40 +17,59 @@ pub struct Renderer {
     frame: Frame,
 
     shapes: ShapeRenderer,
+
+    pipeline: wgpu::RenderPipeline,
+    bind_group: wgpu::BindGroup,
+    bind_group_layout: wgpu::BindGroupLayout,
+
+    viewport_buffer: wgpu::Buffer,
+    instance_buffer: wgpu::Buffer,
+    instance_buffer_capacity: usize,
 }
 
 impl RenderProtocol for Renderer {
     fn render(&mut self, cmds: &[RenderCommand]) {
-        let mut invalidation = RenderInvalidation::Empty;
+        // stored first because different cmds may access the same id
+        let mut quads_by_id: HashMap<RenderId, Vec<RawQuad>> = HashMap::new();
 
         // FIFO processing
+        // everything converges into RawQuad for simple instanced rendering
         for cmd in cmds {
             match cmd {
-                RenderCommand::Resize(viewport) => self.state.resize(*viewport),
-                RenderCommand::RedrawFrame => invalidation.full(),
+                // global invalidations/modifications
+                RenderCommand::Resize(viewport) => {
+                    self.state.set_viewport(*viewport);
+                    self.frame.invalidate();
+                }
+                RenderCommand::RedrawFrame => {
+                    self.frame.invalidate();
+                }
                 RenderCommand::ClearFrame => {
                     self.frame.clear();
-                    invalidation.full();
+                    self.frame.invalidate();
                 }
 
+                // semantic elements
                 RenderCommand::Quad { id, rect, color } => {
                     let quad = self.shapes.plain_quad(*rect, *color);
-                    self.frame.upload(*id, &[quad], &mut invalidation);
-
-                    invalidation.partial(*rect);
+                    quads_by_id.entry(*id).or_default().push(quad);
                 }
 
                 RenderCommand::DocumentGrid { .. } => {}
 
                 RenderCommand::DocumentText { .. } => {}
+
+                // removal
+                RenderCommand::Remove(id) => self.frame.remove(*id),
             }
         }
 
-        match invalidation {
-            RenderInvalidation::Empty => {}
-            RenderInvalidation::Partial(rect) => self.draw_partial(rect),
-            RenderInvalidation::Full => self.draw_full(),
-        }
+        // upload quads to the frame
+        quads_by_id.iter().for_each(|(id, quads)| {
+            self.frame.upload(*id, quads);
+        });
+
+        self.draw();
     }
 }
 
@@ -70,7 +88,9 @@ impl Renderer {
         })
     }
 
-    fn draw_partial(&self, rect: Rect) {}
-
-    fn draw_full(&self) {}
+    fn draw(&mut self) {
+        let Some(quads) = self.frame.get_quads() else {
+            return;
+        };
+    }
 }

@@ -9,7 +9,8 @@ ntk-core.workspace = true
 
 # deps
 wgpu.workspace = true
-cosmic-text.workspace = true
-thiserror.workspace = true
+
+# helper deps
 bytemuck.workspace = true
 pollster.workspace = true
+thiserror.workspace = true

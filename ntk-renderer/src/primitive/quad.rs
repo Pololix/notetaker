@@ -2,7 +2,7 @@ use ntk_core::render::types::Rect;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct RawQuad {
+pub struct Quad {
     pub position: [f32; 2],
     pub size: [f32; 2],
     pub color: [f32; 4],
@@ -10,7 +10,7 @@ pub struct RawQuad {
     pub uv_max: [f32; 2],
 }
 
-impl RawQuad {
+impl Quad {
     pub const ATTRIBUTES: [wgpu::VertexAttribute; 5] = wgpu::vertex_attr_array![
         0 => Float32x2, // position
         1 => Float32x2, // size
