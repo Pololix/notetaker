@@ -1,5 +1,5 @@
 use crate::primitive::{Quad, invalidation::RenderInvalidation};
-use ntk_core::render::RenderId;
+use ntk_core::render::{RenderId, Viewport, types::Rect};
 use std::collections::HashMap;
 
 #[derive(Debug, Default)]
@@ -13,8 +13,12 @@ impl Frame {
         self.quads.clear();
     }
 
-    pub fn invalidate(&mut self) {
-        self.invalidation.full();
+    pub fn empty_invalidation(&mut self) {
+        self.invalidation = RenderInvalidation::Full
+    }
+
+    pub fn full_invalidation(&mut self) {
+        self.invalidation = RenderInvalidation::Full
     }
 
     pub fn upload(&mut self, id: RenderId, quads: &[Quad]) {
@@ -37,21 +41,26 @@ impl Frame {
         };
     }
 
-    pub fn get_quads(&mut self) -> Option<Vec<Quad>> {
-        let quads = match self.invalidation {
+    pub fn get_quads(&mut self, viewport: Viewport) -> Option<(Rect, Vec<Quad>)> {
+        let (rect, quads) = match self.invalidation {
             RenderInvalidation::Empty => return None,
-            RenderInvalidation::Full => self.quads.values().flatten().copied().collect(),
-            RenderInvalidation::Partial(rect) => self
-                .quads
-                .values()
-                .flatten()
-                .filter(|quad| quad.rect().intersects(rect))
-                .copied()
-                .collect(),
+            RenderInvalidation::Partial(rect) => (
+                rect,
+                self.quads
+                    .values()
+                    .flatten()
+                    .filter(|quad| quad.rect().intersects(rect))
+                    .copied()
+                    .collect(),
+            ),
+            RenderInvalidation::Full => (
+                viewport.to_rect(),
+                self.quads.values().flatten().copied().collect(),
+            ),
         };
 
-        // reset and deliver
         self.invalidation = RenderInvalidation::Empty;
-        Some(quads)
+
+        Some((rect, quads))
     }
 }

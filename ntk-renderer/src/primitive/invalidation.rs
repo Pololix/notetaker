@@ -23,8 +23,4 @@ impl RenderInvalidation {
             Self::Full => {}
         }
     }
-
-    pub fn full(&mut self) {
-        *self = Self::Full
-    }
 }

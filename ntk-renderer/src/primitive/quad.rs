@@ -25,6 +25,16 @@ impl Quad {
         attributes: &Self::ATTRIBUTES,
     };
 
+    pub fn instance_buffer(device: &wgpu::Device, capacity: usize) -> wgpu::Buffer {
+        let size = capacity * std::mem::size_of::<Self>();
+        device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Instance buffer"),
+            size: size as u64,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        })
+    }
+
     pub fn rect(&self) -> Rect {
         Rect {
             x: self.position[0],

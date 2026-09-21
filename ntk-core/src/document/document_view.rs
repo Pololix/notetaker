@@ -85,7 +85,7 @@ impl DocumentView {
                 width: self.doc_rect.width + DOCUMENT_MARGIN * 2.0,
                 height: self.doc_rect.height + DOCUMENT_MARGIN * 2.0,
             },
-            color: Color::BLACK,
+            color: Color::WHITE,
         });
 
         cmd_writer.push(RenderCommand::DocumentGrid {
